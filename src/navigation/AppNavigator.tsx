@@ -23,6 +23,10 @@ import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 
 // Group Screens
 import { CreateGroupScreen } from '../screens/Group/CreateGroupScreen';
+import { GroupDetailScreen } from '../screens/Group/GroupDetailScreen';
+
+// Event Screens
+import { CreateEventScreen } from '../screens/Event/CreateEventScreen';
 
 // Type definitions
 import { RootStackParamList, AuthStackParamList, MainTabParamList } from '../types';
@@ -130,6 +134,8 @@ export const AppNavigator = () => {
           <>
             <RootStack.Screen name="Main" component={MainTabNavigator} />
             <RootStack.Screen name="CreateGroup" component={CreateGroupScreen} />
+            <RootStack.Screen name="GroupDetail" component={GroupDetailScreen} />
+            <RootStack.Screen name="CreateEvent" component={CreateEventScreen} />
           </>
         ) : (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
