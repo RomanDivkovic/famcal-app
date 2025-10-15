@@ -7,13 +7,15 @@ This document describes the development tools configured for the GroupCalendar p
 ### ESLint
 
 - **Purpose**: JavaScript/TypeScript linting for code quality
-- **Config**: `.eslintrc.js`
+- **Version**: 9.15.0 with new flat config format
+- **Config**: `eslint.config.mjs` (ESLint v9+ format)
 - **Run**: `npm run lint` or `npm run lint:fix`
 - **Features**:
-  - TypeScript support with `@typescript-eslint`
+  - TypeScript support with `typescript-eslint`
   - React & React Native rules
   - React Hooks validation
   - Auto-fix on commit via pre-commit hooks
+  - Modern flat config format (replaces .eslintrc.js)
 
 ### Prettier
 
