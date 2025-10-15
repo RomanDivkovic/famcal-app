@@ -4,10 +4,8 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getAuth } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-// @ts-ignore - AsyncStorage for React Native persistence
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase configuration
 // These values are loaded from your .env file via EXPO_PUBLIC_* variables
@@ -32,23 +30,8 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY') {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with AsyncStorage persistence for React Native
-// This prevents the "Auth state will default to memory persistence" warning
-let authInstance;
-try {
-  authInstance = initializeAuth(app, {
-    persistence: AsyncStorage as any,
-  });
-} catch (error: any) {
-  // If auth is already initialized, just get it
-  if (error.code === 'auth/already-initialized') {
-    authInstance = getAuth(app);
-  } else {
-    throw error;
-  }
-}
-
-export const auth = authInstance;
+// Initialize Firebase Auth
+export const auth = getAuth(app);
 
 // Initialize Firebase Database
 export const database = getDatabase(app);
