@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Card } from './Card';
+import { Card } from './Cards/Card';
 import { useTheme } from '../contexts/ThemeContext';
 import { Todo } from '../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,16 +18,16 @@ interface TodoItemProps {
 
 export const TodoItem: React.FC<TodoItemProps> = ({ todo, onPress, onToggle }) => {
   const { theme } = useTheme();
-  
+
   const getDueDateColor = () => {
     if (!todo.dueDate || todo.completed) return theme.colors.textSecondary;
-    
+
     const dueDate = new Date(todo.dueDate);
     if (isPast(dueDate) && !isToday(dueDate)) return theme.colors.error;
     if (isToday(dueDate)) return theme.colors.warning;
     return theme.colors.textSecondary;
   };
-  
+
   const getPriorityColor = () => {
     switch (todo.priority) {
       case 'high':
@@ -40,7 +40,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, onPress, onToggle }) =
         return theme.colors.textSecondary;
     }
   };
-  
+
   const styles = StyleSheet.create({
     container: {
       marginBottom: theme.spacing.md,
@@ -98,7 +98,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, onPress, onToggle }) =
       textTransform: 'uppercase',
     },
   });
-  
+
   return (
     <Card style={styles.container} onPress={onPress}>
       <View style={styles.content}>
@@ -118,12 +118,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, onPress, onToggle }) =
           )}
           <View style={styles.footer}>
             {todo.priority && (
-              <View
-                style={[
-                  styles.priorityBadge,
-                  { backgroundColor: getPriorityColor() },
-                ]}
-              >
+              <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
                 <Text style={styles.priorityText}>{todo.priority}</Text>
               </View>
             )}

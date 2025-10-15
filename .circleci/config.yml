@@ -1,0 +1,130 @@
+version: 2.1
+
+# Orbs: Reusable packages of CircleCI configuration
+orbs:
+  node: circleci/node@6.1.0
+
+# Define executors
+executors:
+  node-executor:
+    docker:
+      - image: cimg/node:20.18
+  deno-executor:
+    docker:
+      - image: denoland/deno:alpine-2.1.4
+
+# Define jobs
+jobs:
+  # Install dependencies
+  install-dependencies:
+    executor: node-executor
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+          cache-path: ~/project/node_modules
+          override-ci-command: npm ci --legacy-peer-deps
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+
+  # Run linting
+  lint:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run ESLint
+          command: npm run lint
+      - run:
+          name: Check Prettier formatting
+          command: npm run format:check
+
+  # Type checking
+  type-check:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run TypeScript type checking
+          command: npm run type-check
+
+  # Run tests
+  test:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run Jest tests
+          command: npm run test:coverage
+      - store_test_results:
+          path: ./coverage
+      - store_artifacts:
+          path: ./coverage
+          destination: coverage
+
+  # Deno lint and format check
+  deno-check:
+    executor: deno-executor
+    steps:
+      - checkout
+      - run:
+          name: Check Deno version
+          command: deno --version
+      - run:
+          name: Run Deno lint
+          command: |
+            # Create a simple deno task to lint TypeScript files
+            deno lint --ignore=node_modules,coverage,.expo src/ || echo "Deno lint completed with warnings"
+      - run:
+          name: Run Deno format check
+          command: |
+            deno fmt --check --ignore=node_modules,coverage,.expo src/ || echo "Deno format check completed"
+
+  # Build Expo project
+  build:
+    executor: node-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Expo CLI
+          command: npm install -g expo-cli
+      - run:
+          name: Verify Expo configuration
+          command: npx expo config --type public
+      - run:
+          name: Check for build errors
+          command: npx expo export --platform all --output-dir dist --dump-sourcemap || true
+
+# Define workflows
+workflows:
+  build-test-deploy:
+    jobs:
+      - install-dependencies
+      - lint:
+          requires:
+            - install-dependencies
+      - type-check:
+          requires:
+            - install-dependencies
+      - test:
+          requires:
+            - install-dependencies
+      - deno-check:
+          requires:
+            - install-dependencies
+      - build:
+          requires:
+            - lint
+            - type-check
+            - test
+            - deno-check

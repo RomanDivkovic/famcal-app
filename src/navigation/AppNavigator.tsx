@@ -21,6 +21,9 @@ import { CalendarScreen } from '../screens/Calendar/CalendarScreen';
 import { TodosScreen } from '../screens/Todos/TodosScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 
+// Group Screens
+import { CreateGroupScreen } from '../screens/Group/CreateGroupScreen';
+
 // Type definitions
 import { RootStackParamList, AuthStackParamList, MainTabParamList } from '../types';
 
@@ -41,7 +44,7 @@ const AuthNavigator = () => {
 // Main Tab Navigator
 const MainTabNavigator = () => {
   const { theme } = useTheme();
-  
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -80,26 +83,14 @@ const MainTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Groups' }}
-      />
-      <Tab.Screen 
-        name="Calendar" 
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Groups' }} />
+      <Tab.Screen
+        name="Calendar"
         component={CalendarScreen}
         options={{ tabBarLabel: 'Calendar' }}
       />
-      <Tab.Screen 
-        name="Todos" 
-        component={TodosScreen}
-        options={{ tabBarLabel: 'Todos' }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{ tabBarLabel: 'Profile' }}
-      />
+      <Tab.Screen name="Todos" component={TodosScreen} options={{ tabBarLabel: 'Todos' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
 };
@@ -136,7 +127,10 @@ export const AppNavigator = () => {
     >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <RootStack.Screen name="Main" component={MainTabNavigator} />
+          <>
+            <RootStack.Screen name="Main" component={MainTabNavigator} />
+            <RootStack.Screen name="CreateGroup" component={CreateGroupScreen} />
+          </>
         ) : (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
         )}

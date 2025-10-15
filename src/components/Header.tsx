@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  
+
   const styles = StyleSheet.create({
     header: {
       backgroundColor: theme.colors.headerBackground,
@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
       padding: theme.spacing.xs,
     },
   });
-  
+
   return (
     <View style={styles.header}>
       <View style={styles.leftSection}>

@@ -19,7 +19,7 @@ import { Button, Input } from '../../components';
 export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { signUp } = useAuth();
-  
+
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,36 +34,36 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
   const validateForm = (): boolean => {
     const newErrors: any = {};
-    
+
     if (!displayName.trim()) {
       newErrors.displayName = 'Name is required';
     }
-    
+
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     if (!confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSignUp = async () => {
     if (!validateForm()) return;
-    
+
     try {
       setLoading(true);
       await signUp(email, password, displayName);
@@ -141,7 +141,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             icon="person"
             error={errors.displayName}
           />
-          
+
           <Input
             label="Email"
             placeholder="Enter your email"
@@ -152,7 +152,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             icon="mail"
             error={errors.email}
           />
-          
+
           <Input
             label="Password"
             placeholder="Enter your password"
@@ -162,7 +162,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             icon="lock-closed"
             error={errors.password}
           />
-          
+
           <Input
             label="Confirm Password"
             placeholder="Confirm your password"
@@ -185,10 +185,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account?</Text>
-          <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('Login')}
-          >
+          <Text style={styles.link} onPress={() => navigation.navigate('Login')}>
             Sign In
           </Text>
         </View>

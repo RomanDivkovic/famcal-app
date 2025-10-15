@@ -8,47 +8,42 @@ export default {
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#1a3a52'
+    backgroundColor: '#1a3a52',
   },
   updates: {
-    fallbackToCacheTimeout: 0
+    fallbackToCacheTimeout: 0,
   },
-  assetBundlePatterns: [
-    '**/*'
-  ],
+  assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.groupcalendar.app',
     infoPlist: {
       NSCalendarsUsageDescription: 'This app needs access to your calendar to sync events.',
-      NSRemindersUsageDescription: 'This app needs access to your reminders to sync tasks.'
-    }
+      NSRemindersUsageDescription: 'This app needs access to your reminders to sync tasks.',
+    },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#1a3a52'
+      backgroundColor: '#1a3a52',
     },
     package: 'com.groupcalendar.app',
-    permissions: [
-      'READ_CALENDAR',
-      'WRITE_CALENDAR'
-    ]
+    permissions: ['READ_CALENDAR', 'WRITE_CALENDAR'],
   },
   web: {
-    favicon: './assets/favicon.png'
+    favicon: './assets/favicon.png',
   },
   extra: {
     eas: {
-      projectId: 'your-project-id'
-    }
+      projectId: 'your-project-id',
+    },
   },
   plugins: [
     [
       'expo-calendar',
       {
-        calendarPermission: 'The app needs to access your calendar to sync events.'
-      }
-    ]
-  ]
+        calendarPermission: 'The app needs to access your calendar to sync events.',
+      },
+    ],
+  ],
 };

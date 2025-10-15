@@ -28,13 +28,9 @@ export const fetchMonthEvents = async (userId: string) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    const events = await dataService.getEventsInDateRange(
-      startOfMonth,
-      endOfMonth,
-      userId
-    );
-    
+
+    const events = await dataService.getEventsInDateRange(startOfMonth, endOfMonth, userId);
+
     console.log('Month events:', events);
     return events;
   } catch (error) {
@@ -49,10 +45,10 @@ export const createNewEvent = async (userId: string, groupId?: string) => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(14, 0, 0, 0);
-    
+
     const endTime = new Date(tomorrow);
     endTime.setHours(15, 0, 0, 0);
-    
+
     const event = await dataService.createEvent({
       title: 'Team Meeting',
       description: 'Discuss project progress',
@@ -63,7 +59,7 @@ export const createNewEvent = async (userId: string, groupId?: string) => {
       location: 'Conference Room A',
       reminders: [15, 30], // 15 and 30 minutes before
     });
-    
+
     console.log('Created event:', event);
     return event;
   } catch (error) {
@@ -77,7 +73,7 @@ export const createNewTodo = async (userId: string, groupId?: string) => {
   try {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7); // Due in 7 days
-    
+
     const todo = await dataService.createTodo({
       text: 'Complete project documentation',
       description: 'Write comprehensive docs for the new feature',
@@ -88,7 +84,7 @@ export const createNewTodo = async (userId: string, groupId?: string) => {
       dueDate,
       createdAt: new Date(),
     });
-    
+
     console.log('Created todo:', todo);
     return todo;
   } catch (error) {
@@ -114,7 +110,7 @@ export const subscribeToGroupUpdates = (userId: string, callback: (groups: Group
     const unsubscribe = dataService.subscribeToGroups(userId, callback);
     return unsubscribe;
   }
-  
+
   // For REST API, you'd need to implement polling or WebSockets
   console.warn('Real-time subscriptions not supported with current backend');
   return () => {};

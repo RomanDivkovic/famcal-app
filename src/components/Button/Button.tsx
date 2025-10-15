@@ -11,7 +11,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface ButtonProps {
   title: string;
@@ -26,7 +26,7 @@ interface ButtonProps {
   icon?: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export const Button = ({
   title,
   onPress,
   variant = 'primary',
@@ -37,9 +37,9 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   icon,
-}) => {
+}: ButtonProps) => {
   const { theme } = useTheme();
-  
+
   const getButtonStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
       borderRadius: theme.borderRadius.md,
@@ -48,14 +48,14 @@ export const Button: React.FC<ButtonProps> = ({
       justifyContent: 'center',
       ...theme.shadows.small,
     };
-    
+
     // Size styles
     const sizeStyles = {
       small: { paddingHorizontal: 12, paddingVertical: 8 },
       medium: { paddingHorizontal: 16, paddingVertical: 12 },
       large: { paddingHorizontal: 24, paddingVertical: 16 },
     };
-    
+
     // Variant styles
     const variantStyles = {
       primary: {
@@ -75,7 +75,7 @@ export const Button: React.FC<ButtonProps> = ({
         elevation: 0,
       },
     };
-    
+
     return {
       ...baseStyle,
       ...sizeStyles[size],
@@ -84,33 +84,33 @@ export const Button: React.FC<ButtonProps> = ({
       ...(disabled && { opacity: 0.5 }),
     };
   };
-  
+
   const getTextStyle = (): TextStyle => {
     const baseStyle: TextStyle = {
       ...theme.typography.button,
       textAlign: 'center',
     };
-    
+
     const sizeStyles = {
       small: { fontSize: 12 },
       medium: { fontSize: 14 },
       large: { fontSize: 16 },
     };
-    
+
     const variantStyles = {
       primary: { color: '#ffffff' },
       secondary: { color: '#ffffff' },
       outline: { color: theme.colors.primary },
       text: { color: theme.colors.primary },
     };
-    
+
     return {
       ...baseStyle,
       ...sizeStyles[size],
       ...variantStyles[variant],
     };
   };
-  
+
   return (
     <TouchableOpacity
       style={[getButtonStyle(), style]}
@@ -121,14 +121,14 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' || variant === 'secondary' ? '#ffffff' : theme.colors.primary}
+          color={
+            variant === 'primary' || variant === 'secondary' ? '#ffffff' : theme.colors.primary
+          }
         />
       ) : (
         <>
           {icon && <>{icon}</>}
-          <Text style={[getTextStyle(), textStyle, icon ? { marginLeft: 8 } : null]}>
-            {title}
-          </Text>
+          <Text style={[getTextStyle(), textStyle, icon ? { marginLeft: 8 } : null]}>{title}</Text>
         </>
       )}
     </TouchableOpacity>

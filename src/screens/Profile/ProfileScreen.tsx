@@ -3,14 +3,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, Card, Button } from '../../components';
@@ -21,24 +14,20 @@ export const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              console.error('Error signing out:', error);
-            }
-          },
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            console.error('Error signing out:', error);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const styles = StyleSheet.create({
@@ -126,13 +115,11 @@ export const ProfileScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title="Profile" />
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {getInitials(user?.displayName)}
-            </Text>
+            <Text style={styles.avatarText}>{getInitials(user?.displayName)}</Text>
           </View>
           <Text style={styles.name}>{user?.displayName || 'User'}</Text>
           <Text style={styles.email}>{user?.email}</Text>
@@ -140,7 +127,7 @@ export const ProfileScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          
+
           <Card style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <Ionicons
@@ -163,7 +150,7 @@ export const ProfileScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          
+
           <Card style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <Ionicons
@@ -176,14 +163,17 @@ export const ProfileScreen: React.FC = () => {
             </View>
             <Text style={styles.settingValue}>1.0.0</Text>
           </Card>
-          
-          <Card style={styles.settingItem} onPress={() => {
-            Alert.alert(
-              'Backend Configuration',
-              `Currently using: ${process.env.EXPO_PUBLIC_USE_FIREBASE === 'true' ? 'Firebase' : 'Custom API'}`,
-              [{ text: 'OK' }]
-            );
-          }}>
+
+          <Card
+            style={styles.settingItem}
+            onPress={() => {
+              Alert.alert(
+                'Backend Configuration',
+                `Currently using: ${process.env.EXPO_PUBLIC_USE_FIREBASE === 'true' ? 'Firebase' : 'Custom API'}`,
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <View style={styles.settingLeft}>
               <Ionicons
                 name="server-outline"
@@ -193,11 +183,7 @@ export const ProfileScreen: React.FC = () => {
               />
               <Text style={styles.settingText}>Backend</Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
           </Card>
         </View>
 
