@@ -14,7 +14,7 @@ export interface IDataService {
   signOut(): Promise<void>;
   getCurrentUser(): Promise<User | null>;
   updateUserProfile(userId: string, updates: Partial<User>): Promise<void>;
-  
+
   // Groups
   getGroups(userId: string): Promise<Group[]>;
   getGroupById(groupId: string): Promise<Group | null>;
@@ -24,7 +24,7 @@ export interface IDataService {
   joinGroup(groupId: string, userId: string, inviteCode?: string): Promise<void>;
   leaveGroup(groupId: string, userId: string): Promise<void>;
   generateInviteCode(groupId: string): Promise<string>;
-  
+
   // Events
   getEvents(groupId?: string): Promise<Event[]>;
   getEventById(eventId: string): Promise<Event | null>;
@@ -33,7 +33,7 @@ export interface IDataService {
   createEvent(event: Omit<Event, 'id'>): Promise<Event>;
   updateEvent(eventId: string, updates: Partial<Event>): Promise<void>;
   deleteEvent(eventId: string): Promise<void>;
-  
+
   // Todos
   getTodos(groupId?: string): Promise<Todo[]>;
   getTodoById(todoId: string): Promise<Todo | null>;
@@ -42,12 +42,12 @@ export interface IDataService {
   updateTodo(todoId: string, updates: Partial<Todo>): Promise<void>;
   deleteTodo(todoId: string): Promise<void>;
   toggleTodoComplete(todoId: string): Promise<void>;
-  
+
   // Invitations
   createInvitation(groupId: string, email: string, invitedBy: string): Promise<Invitation>;
   getInvitationsForUser(email: string): Promise<Invitation[]>;
   respondToInvitation(invitationId: string, accepted: boolean): Promise<void>;
-  
+
   // Real-time listeners (for Firebase)
   subscribeToGroups?(userId: string, callback: (groups: Group[]) => void): () => void;
   subscribeToEvents?(groupId: string, callback: (events: Event[]) => void): () => void;

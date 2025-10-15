@@ -31,10 +31,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Update theme when mode or system color scheme changes
   useEffect(() => {
-    const isDarkMode = themeMode === 'auto' 
-      ? systemColorScheme === 'dark'
-      : themeMode === 'dark';
-    
+    const isDarkMode = themeMode === 'auto' ? systemColorScheme === 'dark' : themeMode === 'dark';
+
     setCurrentTheme(isDarkMode ? darkTheme : lightTheme);
   }, [themeMode, systemColorScheme]);
 
@@ -69,13 +67,15 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   return (
-    <ThemeContext.Provider value={{ 
-      theme, 
-      isDark: theme.isDark, 
-      toggleTheme, 
-      setTheme,
-      themeMode 
-    }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        isDark: theme.isDark,
+        toggleTheme,
+        setTheme,
+        themeMode,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

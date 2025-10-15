@@ -94,6 +94,10 @@ export interface UserPreferences {
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
+  CreateGroup: undefined;
+  GroupDetail: { groupId: string };
+  CreateEvent: { groupId?: string; date?: Date };
+  CreateTodo: { groupId?: string };
 };
 
 export type AuthStackParamList = {

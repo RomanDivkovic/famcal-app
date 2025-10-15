@@ -5,8 +5,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Card } from './Card';
-import { useTheme } from '../contexts/ThemeContext';
-import { Group } from '../types';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Group } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 
 interface GroupCardProps {
@@ -16,7 +16,7 @@ interface GroupCardProps {
 
 export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
   const { theme } = useTheme();
-  
+
   const styles = StyleSheet.create({
     container: {
       marginBottom: theme.spacing.md,
@@ -67,14 +67,11 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
       color: theme.colors.textSecondary,
     },
   });
-  
+
   return (
     <Card style={styles.container} onPress={onPress}>
       <View
-        style={[
-          styles.colorIndicator,
-          { backgroundColor: group.color || theme.colors.primary },
-        ]}
+        style={[styles.colorIndicator, { backgroundColor: group.color || theme.colors.primary }]}
       />
       <View style={styles.content}>
         <View style={styles.header}>

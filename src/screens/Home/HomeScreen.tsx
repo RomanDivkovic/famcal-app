@@ -3,14 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, GroupCard } from '../../components';
@@ -21,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  
+
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +25,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const loadGroups = async () => {
     if (!user) return;
-    
+
     try {
       const userGroups = await dataService.getGroups(user.id);
       setGroups(userGroups);
@@ -119,17 +112,12 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Header title="My Groups" />
-      
+
       <FlatList
         data={groups}
-        renderItem={({ item }) => (
-          <GroupCard group={item} onPress={() => handleGroupPress(item)} />
-        )}
+        renderItem={({ item }) => <GroupCard group={item} onPress={() => handleGroupPress(item)} />}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.content,
-          groups.length === 0 && { flex: 1 },
-        ]}
+        contentContainerStyle={[styles.content, groups.length === 0 && { flex: 1 }]}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl

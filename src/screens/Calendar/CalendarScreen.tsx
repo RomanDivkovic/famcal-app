@@ -3,14 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, EventCard, Button } from '../../components';
@@ -23,7 +16,7 @@ import { startOfMonth, endOfMonth, addMonths, subMonths, format } from 'date-fns
 export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -42,23 +35,28 @@ export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const requestCalendarPermission = async () => {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     setCalendarPermission(status === 'granted');
-    
+
     if (status === 'granted') {
-      Alert.alert('Success', 'Calendar permission granted. You can now sync events to your device calendar.');
+      Alert.alert(
+        'Success',
+        'Calendar permission granted. You can now sync events to your device calendar.'
+      );
     }
   };
 
   const loadEvents = async () => {
     if (!user) return;
-    
+
     try {
       const start = startOfMonth(currentMonth);
       const end = endOfMonth(currentMonth);
-      
+
       const monthEvents = await dataService.getEventsInDateRange(start, end, user.id);
-      setEvents(monthEvents.sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      ));
+      setEvents(
+        monthEvents.sort(
+          (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        )
+      );
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -68,21 +66,17 @@ export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
   const syncEventToNativeCalendar = async (event: Event) => {
     if (!calendarPermission) {
-      Alert.alert(
-        'Permission Required',
-        'Calendar permission is required to sync events.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Grant Permission', onPress: requestCalendarPermission },
-        ]
-      );
+      Alert.alert('Permission Required', 'Calendar permission is required to sync events.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Grant Permission', onPress: requestCalendarPermission },
+      ]);
       return;
     }
 
     try {
       // Get default calendar
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      const defaultCalendar = calendars.find(cal => cal.allowsModifications) || calendars[0];
+      const defaultCalendar = calendars.find((cal) => cal.allowsModifications) || calendars[0];
 
       if (!defaultCalendar) {
         Alert.alert('Error', 'No calendar available for sync');
@@ -96,7 +90,7 @@ export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         endDate: new Date(event.endDate),
         location: event.location,
         notes: event.description,
-        alarms: event.reminders?.map(minutes => ({ relativeOffset: -minutes })),
+        alarms: event.reminders?.map((minutes) => ({ relativeOffset: -minutes })),
       });
 
       // Update event with native calendar ID
@@ -196,23 +190,21 @@ export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         style={styles.emptyIcon}
       />
       <Text style={styles.emptyTitle}>No Events This Month</Text>
-      <Text style={styles.emptyText}>
-        Create an event to get started
-      </Text>
+      <Text style={styles.emptyText}>Create an event to get started</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Header title="Calendar" />
-      
+
       <View style={styles.monthSelector}>
         <TouchableOpacity style={styles.monthButton} onPress={handlePreviousMonth}>
           <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        
+
         <Text style={styles.monthText}>{format(currentMonth, 'MMMM yyyy')}</Text>
-        
+
         <TouchableOpacity style={styles.monthButton} onPress={handleNextMonth}>
           <Ionicons name="chevron-forward" size={24} color={theme.colors.text} />
         </TouchableOpacity>
@@ -247,10 +239,7 @@ export const CalendarScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           />
         )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.content,
-          events.length === 0 && { flex: 1 },
-        ]}
+        contentContainerStyle={[styles.content, events.length === 0 && { flex: 1 }]}
         ListEmptyComponent={renderEmpty}
       />
 

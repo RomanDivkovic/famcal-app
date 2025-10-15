@@ -2,10 +2,10 @@
  * Export all components
  */
 
-export { Button } from './Button';
+export { Button } from './Button/Button';
 export { Input } from './Input';
-export { Card } from './Card';
+export { Card } from './Cards/Card';
 export { Header } from './Header';
-export { GroupCard } from './GroupCard';
-export { EventCard } from './EventCard';
+export { GroupCard } from './Cards/GroupCard';
+export { EventCard } from './Cards/EventCard';
 export { TodoItem } from './TodoItem';

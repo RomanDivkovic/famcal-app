@@ -5,8 +5,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Card } from './Card';
-import { useTheme } from '../contexts/ThemeContext';
-import { Event } from '../types';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Event } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { format, isSameDay } from 'date-fns';
 
@@ -17,25 +17,25 @@ interface EventCardProps {
 
 export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
   const { theme } = useTheme();
-  
+
   const formatEventDate = () => {
     const start = new Date(event.startDate);
     const end = new Date(event.endDate);
-    
+
     if (event.allDay) {
       if (isSameDay(start, end)) {
         return format(start, 'MMM d, yyyy');
       }
       return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
     }
-    
+
     if (isSameDay(start, end)) {
       return `${format(start, 'MMM d, yyyy • h:mm a')} - ${format(end, 'h:mm a')}`;
     }
-    
+
     return `${format(start, 'MMM d, h:mm a')} - ${format(end, 'MMM d, h:mm a')}`;
   };
-  
+
   const styles = StyleSheet.create({
     container: {
       marginBottom: theme.spacing.md,
@@ -88,15 +88,10 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
       color: theme.colors.textSecondary,
     },
   });
-  
+
   return (
     <Card style={styles.container} onPress={onPress}>
-      <View
-        style={[
-          styles.colorBar,
-          { backgroundColor: event.color || theme.colors.primary },
-        ]}
-      />
+      <View style={[styles.colorBar, { backgroundColor: event.color || theme.colors.primary }]} />
       <View style={styles.content}>
         <Text style={styles.title}>{event.title}</Text>
         <View style={styles.dateContainer}>

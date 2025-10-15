@@ -3,14 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, TodoItem } from '../../components';
@@ -21,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  
+
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,19 +26,21 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const loadTodos = async () => {
     if (!user) return;
-    
+
     try {
       const userTodos = await dataService.getTodosForUser(user.id);
-      setTodos(userTodos.sort((a, b) => {
-        // Sort by: incomplete first, then by due date, then by creation date
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }));
+      setTodos(
+        userTodos.sort((a, b) => {
+          // Sort by: incomplete first, then by due date, then by creation date
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+          if (a.dueDate && b.dueDate) {
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        })
+      );
     } catch (error) {
       console.error('Error loading todos:', error);
     } finally {
@@ -75,9 +70,9 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const getFilteredTodos = () => {
     switch (filter) {
       case 'active':
-        return todos.filter(todo => !todo.completed);
+        return todos.filter((todo) => !todo.completed);
       case 'completed':
-        return todos.filter(todo => todo.completed);
+        return todos.filter((todo) => todo.completed);
       default:
         return todos;
     }
@@ -172,8 +167,8 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   });
 
   const filteredTodos = getFilteredTodos();
-  const completedCount = todos.filter(t => t.completed).length;
-  const activeCount = todos.filter(t => !t.completed).length;
+  const completedCount = todos.filter((t) => t.completed).length;
+  const activeCount = todos.filter((t) => !t.completed).length;
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -184,64 +179,36 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         style={styles.emptyIcon}
       />
       <Text style={styles.emptyTitle}>No Todos Yet</Text>
-      <Text style={styles.emptyText}>
-        Create a todo to start tracking your tasks
-      </Text>
+      <Text style={styles.emptyText}>Create a todo to start tracking your tasks</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Header title="Todos" />
-      
+
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === 'all' && styles.filterButtonActive,
-          ]}
+          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
           onPress={() => setFilter('all')}
         >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'all' && styles.filterTextActive,
-            ]}
-          >
-            All
-          </Text>
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === 'active' && styles.filterButtonActive,
-          ]}
+          style={[styles.filterButton, filter === 'active' && styles.filterButtonActive]}
           onPress={() => setFilter('active')}
         >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'active' && styles.filterTextActive,
-            ]}
-          >
+          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>
             Active
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === 'completed' && styles.filterButtonActive,
-          ]}
+          style={[styles.filterButton, filter === 'completed' && styles.filterButtonActive]}
           onPress={() => setFilter('completed')}
         >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'completed' && styles.filterTextActive,
-            ]}
-          >
+          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>
             Completed
           </Text>
         </TouchableOpacity>
@@ -257,10 +224,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           />
         )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.content,
-          filteredTodos.length === 0 && { flex: 1 },
-        ]}
+        contentContainerStyle={[styles.content, filteredTodos.length === 0 && { flex: 1 }]}
         ListHeaderComponent={
           todos.length > 0 ? (
             <View style={styles.statsContainer}>

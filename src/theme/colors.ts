@@ -19,7 +19,7 @@ export const colors = {
     info: '#0288d1',
     disabled: '#bdbdbd',
     placeholder: '#9e9e9e',
-    
+
     // Semantic colors
     cardBackground: '#ffffff',
     headerBackground: '#1a3a52',
@@ -27,7 +27,7 @@ export const colors = {
     tabBarBackground: '#ffffff',
     tabBarActive: '#1a3a52',
     tabBarInactive: '#9e9e9e',
-    
+
     // Group/Event colors (for visual differentiation)
     groupColors: [
       '#1a3a52', // Dark blue
@@ -53,7 +53,7 @@ export const colors = {
     info: '#29b6f6',
     disabled: '#666666',
     placeholder: '#757575',
-    
+
     // Semantic colors
     cardBackground: '#1e1e1e',
     headerBackground: '#1a1a1a',
@@ -61,7 +61,7 @@ export const colors = {
     tabBarBackground: '#1e1e1e',
     tabBarActive: '#4a7ba7',
     tabBarInactive: '#757575',
-    
+
     // Group/Event colors (adjusted for dark mode)
     groupColors: [
       '#4a7ba7', // Lighter blue

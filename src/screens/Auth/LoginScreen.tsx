@@ -19,7 +19,7 @@ import { Button, Input } from '../../components';
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { signIn, signInWithGoogle } = useAuth();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,26 +27,26 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
-    
+
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSignIn = async () => {
     if (!validateForm()) return;
-    
+
     try {
       setLoading(true);
       await signIn(email, password);
@@ -152,7 +152,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             icon="mail"
             error={errors.email}
           />
-          
+
           <Input
             label="Password"
             placeholder="Enter your password"
@@ -190,10 +190,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account?</Text>
-          <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('Register')}
-          >
+          <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
             Sign Up
           </Text>
         </View>
