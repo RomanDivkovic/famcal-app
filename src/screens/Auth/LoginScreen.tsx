@@ -2,7 +2,7 @@
  * Login Screen
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,123 +12,67 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input } from '../../components';
+import { useForm, useAsync } from '../../hooks';
+import { AuthStackParamList } from '../../types';
 
-export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+interface Props {
+  navigation: LoginScreenNavigationProp;
+}
+
+export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useTheme();
   const { signIn, signInWithGoogle } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-
-  const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string } = {};
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+  // Form validation
+  const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
+    {
+      email: '',
+      password: '',
+    },
+    {
+      email: {
+        required: true,
+        pattern: /\S+@\S+\.\S+/,
+      },
+      password: {
+        required: true,
+        minLength: 6,
+      },
     }
+  );
 
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+  // Sign in async operation
+  const {
+    execute: executeSignIn,
+    loading,
+    error,
+  } = useAsync<void, []>(async () => {
+    const isValid = validateAll();
+    if (!isValid) {
+      throw new Error('Please fix the form errors');
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSignIn = async () => {
-    if (!validateForm()) return;
-
-    try {
-      setLoading(true);
-      await signIn(email, password);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign in');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      await signInWithGoogle();
-    } catch (error: any) {
-      Alert.alert('Info', 'Google sign-in requires additional setup with expo-auth-session');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      padding: theme.spacing.lg,
-    },
-    header: {
-      alignItems: 'center',
-      marginBottom: theme.spacing.xxl,
-    },
-    title: {
-      ...theme.typography.h2,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-      ...theme.typography.body1,
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-    },
-    form: {
-      marginBottom: theme.spacing.lg,
-    },
-    button: {
-      marginBottom: theme.spacing.md,
-    },
-    divider: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: theme.spacing.lg,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.colors.border,
-    },
-    dividerText: {
-      ...theme.typography.body2,
-      color: theme.colors.textSecondary,
-      marginHorizontal: theme.spacing.md,
-    },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: theme.spacing.lg,
-    },
-    footerText: {
-      ...theme.typography.body2,
-      color: theme.colors.textSecondary,
-    },
-    link: {
-      ...theme.typography.body2,
-      color: theme.colors.primary,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
+    await signIn(values.email, values.password);
   });
+
+  // Google sign in async operation
+  const { execute: executeGoogleSignIn, loading: googleLoading } = useAsync<void, []>(async () => {
+    await signInWithGoogle();
+  });
+
+  // Show error alerts
+  React.useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error.message);
+    }
+  }, [error]);
+
+  const isLoading = loading || googleLoading;
 
   return (
     <KeyboardAvoidingView
@@ -145,30 +89,32 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <Input
             label="Email"
             placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
+            value={values.email}
+            onChangeText={(text) => handleChange('email', text)}
+            onBlur={() => handleBlur('email')}
             keyboardType="email-address"
             autoCapitalize="none"
             icon="mail"
-            error={errors.email}
+            error={touched.email ? errors.email : undefined}
           />
 
           <Input
             label="Password"
             placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
+            value={values.password}
+            onChangeText={(text) => handleChange('password', text)}
+            onBlur={() => handleBlur('password')}
             secureTextEntry
             icon="lock-closed"
-            error={errors.password}
+            error={touched.password ? errors.password : undefined}
           />
         </View>
 
         <Button
           title="Sign In"
-          onPress={handleSignIn}
+          onPress={executeSignIn}
           loading={loading}
-          disabled={loading}
+          disabled={isLoading}
           fullWidth
           style={styles.button}
         />
@@ -181,9 +127,9 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <Button
           title="Sign in with Google"
-          onPress={handleGoogleSignIn}
+          onPress={executeGoogleSignIn}
           variant="outline"
-          disabled={loading}
+          disabled={isLoading}
           fullWidth
           style={styles.button}
         />
@@ -198,3 +144,55 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    marginTop: 8,
+  },
+  form: {
+    marginVertical: 24,
+  },
+  button: {
+    marginBottom: 16,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  footerText: {
+    fontSize: 14,
+  },
+  link: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+});
