@@ -42,12 +42,15 @@ export const Input: React.FC<InputProps> = ({
       borderWidth: 1,
       borderColor: error ? theme.colors.error : theme.colors.border,
       paddingHorizontal: theme.spacing.md,
+      minHeight: 48, // Ensure consistent height
     },
     input: {
       flex: 1,
       ...theme.typography.body1,
       color: theme.colors.text,
-      paddingVertical: theme.spacing.sm,
+      paddingVertical: theme.spacing.md, // Increased padding for better centering
+      minHeight: 48, // Match container height
+      textAlignVertical: 'center', // Center text vertically (Android)
     },
     icon: {
       marginRight: theme.spacing.sm,
