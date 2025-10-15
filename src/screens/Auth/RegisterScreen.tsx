@@ -2,7 +2,7 @@
  * Register Screen
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,114 +12,72 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useTheme } from '../../contexts/ThemeContext';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input } from '../../components';
+import { useForm, useAsync } from '../../hooks';
+import { AuthStackParamList } from '../../types';
 
-export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { theme } = useTheme();
+type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+
+interface Props {
+  navigation: RegisterScreenNavigationProp;
+}
+
+export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp } = useAuth();
 
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{
-    displayName?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
-
-  const validateForm = (): boolean => {
-    const newErrors: any = {};
-
-    if (!displayName.trim()) {
-      newErrors.displayName = 'Name is required';
+  // Form validation with custom password match rule
+  const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
+    {
+      displayName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+    {
+      displayName: {
+        required: true,
+      },
+      email: {
+        required: true,
+        pattern: /\S+@\S+\.\S+/,
+      },
+      password: {
+        required: true,
+        minLength: 6,
+      },
+      confirmPassword: {
+        required: true,
+        custom: (value) => {
+          if (value !== values.password) {
+            return 'Passwords do not match';
+          }
+          return undefined;
+        },
+      },
     }
+  );
 
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+  // Sign up async operation
+  const {
+    execute: executeSignUp,
+    loading,
+    error,
+  } = useAsync<void, []>(async () => {
+    const isValid = validateAll();
+    if (!isValid) {
+      throw new Error('Please fix the form errors');
     }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSignUp = async () => {
-    if (!validateForm()) return;
-
-    try {
-      setLoading(true);
-      await signUp(email, password, displayName);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create account');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      padding: theme.spacing.lg,
-    },
-    header: {
-      alignItems: 'center',
-      marginBottom: theme.spacing.xl,
-    },
-    title: {
-      ...theme.typography.h2,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-      ...theme.typography.body1,
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-    },
-    form: {
-      marginBottom: theme.spacing.lg,
-    },
-    button: {
-      marginBottom: theme.spacing.md,
-    },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: theme.spacing.lg,
-    },
-    footerText: {
-      ...theme.typography.body2,
-      color: theme.colors.textSecondary,
-    },
-    link: {
-      ...theme.typography.body2,
-      color: theme.colors.primary,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
+    await signUp(values.email, values.password, values.displayName);
   });
+
+  // Show error alerts
+  React.useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error.message);
+    }
+  }, [error]);
 
   return (
     <KeyboardAvoidingView
@@ -136,47 +94,51 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           <Input
             label="Full Name"
             placeholder="Enter your name"
-            value={displayName}
-            onChangeText={setDisplayName}
+            value={values.displayName}
+            onChangeText={(text) => handleChange('displayName', text)}
+            onBlur={() => handleBlur('displayName')}
             icon="person"
-            error={errors.displayName}
+            error={touched.displayName ? errors.displayName : undefined}
           />
 
           <Input
             label="Email"
             placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
+            value={values.email}
+            onChangeText={(text) => handleChange('email', text)}
+            onBlur={() => handleBlur('email')}
             keyboardType="email-address"
             autoCapitalize="none"
             icon="mail"
-            error={errors.email}
+            error={touched.email ? errors.email : undefined}
           />
 
           <Input
             label="Password"
             placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
+            value={values.password}
+            onChangeText={(text) => handleChange('password', text)}
+            onBlur={() => handleBlur('password')}
             secureTextEntry
             icon="lock-closed"
-            error={errors.password}
+            error={touched.password ? errors.password : undefined}
           />
 
           <Input
             label="Confirm Password"
             placeholder="Confirm your password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            value={values.confirmPassword}
+            onChangeText={(text) => handleChange('confirmPassword', text)}
+            onBlur={() => handleBlur('confirmPassword')}
             secureTextEntry
             icon="lock-closed"
-            error={errors.confirmPassword}
+            error={touched.confirmPassword ? errors.confirmPassword : undefined}
           />
         </View>
 
         <Button
           title="Sign Up"
-          onPress={handleSignUp}
+          onPress={executeSignUp}
           loading={loading}
           disabled={loading}
           fullWidth
@@ -193,3 +155,43 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    marginTop: 8,
+  },
+  form: {
+    marginVertical: 24,
+  },
+  button: {
+    marginBottom: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  footerText: {
+    fontSize: 14,
+  },
+  link: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+});
