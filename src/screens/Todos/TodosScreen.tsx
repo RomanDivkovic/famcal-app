@@ -89,14 +89,16 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
+      gap: theme.spacing.xs,
     },
     filterButton: {
       flex: 1,
       paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.xs,
       borderRadius: theme.borderRadius.md,
-      marginHorizontal: theme.spacing.xs,
       alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 40,
     },
     filterButtonActive: {
       backgroundColor: theme.colors.primary,
@@ -104,6 +106,8 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     filterText: {
       ...theme.typography.button,
       color: theme.colors.text,
+      fontSize: 13,
+      textAlign: 'center',
     },
     filterTextActive: {
       color: '#ffffff',

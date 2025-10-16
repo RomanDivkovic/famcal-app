@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, Card, Button } from '../../components';
@@ -138,13 +138,12 @@ export const ProfileScreen: React.FC = () => {
               />
               <Text style={styles.settingText}>Dark Mode</Text>
             </View>
-            <TouchableOpacity onPress={toggleTheme}>
-              <Ionicons
-                name={isDark ? 'toggle' : 'toggle-outline'}
-                size={32}
-                color={isDark ? theme.colors.primary : theme.colors.border}
-              />
-            </TouchableOpacity>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor="#ffffff"
+            />
           </Card>
         </View>
 
