@@ -3,7 +3,16 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Linking,
+  Platform,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -138,6 +147,31 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('CreateEvent');
   };
 
+  const openNativeCalendar = async () => {
+    try {
+      const url = Platform.select({
+        ios: 'calshow://',
+        android: 'content://com.android.calendar/time/',
+        default: '',
+      });
+
+      if (!url) {
+        Alert.alert('Not Supported', 'Opening native calendar is not supported on this platform');
+        return;
+      }
+
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open native calendar app');
+      }
+    } catch (error) {
+      console.error('Error opening calendar:', error);
+      Alert.alert('Error', 'Failed to open native calendar');
+    }
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -218,7 +252,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header title="Calendar" />
+      <Header title="Calendar" rightIcon="calendar" onRightPress={openNativeCalendar} />
 
       <View style={styles.monthSelector}>
         <TouchableOpacity style={styles.monthButton} onPress={handlePreviousMonth}>
