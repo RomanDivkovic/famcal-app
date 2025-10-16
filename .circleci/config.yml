@@ -116,7 +116,7 @@ jobs:
           at: .
       - run:
           name: Install Expo CLI
-          command: npm install -g expo-cli
+          command: sudo npm install -g expo-cli
       - run:
           name: Verify Expo configuration
           command: npx expo config --type public
