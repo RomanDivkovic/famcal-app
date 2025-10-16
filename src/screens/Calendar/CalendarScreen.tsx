@@ -138,6 +138,71 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('CreateEvent');
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    monthSelector: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.spacing.md,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    monthButton: {
+      padding: theme.spacing.sm,
+    },
+    monthText: {
+      ...theme.typography.h6,
+      color: theme.colors.text,
+    },
+    content: {
+      padding: theme.spacing.md,
+    },
+    syncButton: {
+      margin: theme.spacing.md,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.spacing.xl,
+    },
+    emptyIcon: {
+      marginBottom: theme.spacing.lg,
+    },
+    emptyTitle: {
+      ...theme.typography.h5,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
+      textAlign: 'center',
+    },
+    emptyText: {
+      ...theme.typography.body1,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+    },
+    fab: {
+      position: 'absolute',
+      right: theme.spacing.lg,
+      bottom: theme.spacing.lg,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+  });
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Ionicons
@@ -192,58 +257,3 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  monthButton: {
-    padding: 8,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  content: {
-    padding: 12,
-  },
-  syncButton: {
-    margin: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

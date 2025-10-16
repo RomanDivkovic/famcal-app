@@ -24,6 +24,10 @@
     }
   },
   "test": {
-    "include": ["src/__tests__/"]
+    "include": ["src/__tests__/", "tests/"]
+  },
+  "tasks": {
+    "test": "deno test --allow-read tests/",
+    "test:watch": "deno test --allow-read --watch tests/"
   }
 }

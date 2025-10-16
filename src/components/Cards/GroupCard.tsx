@@ -20,6 +20,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
   const styles = StyleSheet.create({
     container: {
       marginBottom: theme.spacing.md,
+      overflow: 'hidden', // Ensures color indicator respects border radius
     },
     header: {
       flexDirection: 'row',
@@ -29,7 +30,6 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
     },
     colorIndicator: {
       width: 4,
-      height: '100%',
       position: 'absolute',
       left: 0,
       top: 0,
