@@ -59,19 +59,28 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       setLoading(true);
 
+      // Ensure dates are proper Date objects
+      const startDateTime = new Date(startDate);
+      const endDateTime = new Date(endDate);
+
       // Create event in app database
       const eventData = {
         title: title.trim(),
         description: description.trim(),
-        startDate: startDate,
-        endDate: endDate,
+        startDate: startDateTime,
+        endDate: endDateTime,
         groupId: groupId || undefined,
         createdBy: user.id,
       };
 
-      console.info('Creating event with data:', eventData);
-      await dataService.createEvent(eventData);
-      console.info('Event created successfully in database');
+      console.info('Creating event with data:', {
+        ...eventData,
+        startDate: startDateTime.toISOString(),
+        endDate: endDateTime.toISOString(),
+      });
+
+      const createdEvent = await dataService.createEvent(eventData);
+      console.info('Event created successfully:', createdEvent);
 
       // Try to sync to native calendar
       try {
@@ -219,14 +228,24 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
           value={startDate}
           mode="datetime"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={theme.isDark ? 'dark' : 'light'}
           onChange={(event, selectedDate) => {
-            setShowStartPicker(Platform.OS === 'ios');
-            if (selectedDate) {
+            // On Android, close immediately after selection
+            if (Platform.OS === 'android') {
+              setShowStartPicker(false);
+            }
+            if (event.type === 'set' && selectedDate) {
               setStartDate(selectedDate);
               // Auto-adjust end date if it's before start date
               if (selectedDate > endDate) {
                 setEndDate(new Date(selectedDate.getTime() + 60 * 60 * 1000));
               }
+              // Close picker on iOS after selection
+              if (Platform.OS === 'ios') {
+                setShowStartPicker(false);
+              }
+            } else if (event.type === 'dismissed') {
+              setShowStartPicker(false);
             }
           }}
         />
@@ -237,11 +256,21 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
           value={endDate}
           mode="datetime"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={theme.isDark ? 'dark' : 'light'}
           minimumDate={startDate}
           onChange={(event, selectedDate) => {
-            setShowEndPicker(Platform.OS === 'ios');
-            if (selectedDate) {
+            // On Android, close immediately after selection
+            if (Platform.OS === 'android') {
+              setShowEndPicker(false);
+            }
+            if (event.type === 'set' && selectedDate) {
               setEndDate(selectedDate);
+              // Close picker on iOS after selection
+              if (Platform.OS === 'ios') {
+                setShowEndPicker(false);
+              }
+            } else if (event.type === 'dismissed') {
+              setShowEndPicker(false);
             }
           }}
         />

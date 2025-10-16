@@ -336,18 +336,34 @@ class FirebaseService implements IDataService {
 
   async createEvent(event: Omit<Event, 'id'>): Promise<Event> {
     try {
+      console.info('[FirebaseService] Creating event:', event);
+
       const eventsRef = ref(database, 'events');
       const newEventRef = push(eventsRef);
 
+      if (!newEventRef.key) {
+        throw new Error('Failed to generate event key');
+      }
+
       const newEvent: Event = {
         ...event,
-        id: newEventRef.key!,
+        id: newEventRef.key,
       };
 
-      await set(newEventRef, this.serializeEvent(newEvent));
+      const serialized = this.serializeEvent(newEvent);
+      console.info('[FirebaseService] Serialized event:', serialized);
+
+      await set(newEventRef, serialized);
+      console.info('[FirebaseService] Event saved successfully with ID:', newEvent.id);
+
       return newEvent;
     } catch (error: any) {
-      throw new DataServiceError('Failed to create event', error.code, error);
+      console.error('[FirebaseService] Error creating event:', error);
+      throw new DataServiceError(
+        `Failed to create event: ${error.message || 'Unknown error'}`,
+        error.code,
+        error
+      );
     }
   }
 
