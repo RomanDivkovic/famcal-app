@@ -94,14 +94,14 @@ jobs:
           command: deno --version
       - run:
           name: Cache Deno dependencies
-          command: deno cache tests/*.ts
+          command: deno cache --no-lock tests/*.ts
       - run:
           name: Run Deno tests
-          command: deno test --allow-read tests/
+          command: deno test --no-lock --allow-read tests/
       - run:
           name: Run Deno tests with coverage
           command: |
-            deno test --allow-read --coverage=coverage_deno/ tests/ || echo "Coverage collection completed"
+            deno test --no-lock --allow-read --coverage=coverage_deno/ tests/ || echo "Coverage collection completed"
             deno coverage coverage_deno/ --lcov --output=coverage_deno/lcov.info || echo "Coverage report generated"
       - store_artifacts:
           path: coverage_deno
