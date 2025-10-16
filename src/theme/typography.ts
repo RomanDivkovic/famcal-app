@@ -60,7 +60,7 @@ export const typography = {
   body2: {
     fontSize: 14,
     fontWeight: '400' as const,
-    lineHeight: 20,
+    lineHeight: 16,
     letterSpacing: 0.25,
   },
   button: {

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Button, Input } from '../../components';
 import { useForm, useAsync } from '../../hooks';
 import { AuthStackParamList } from '../../types';
@@ -26,6 +27,7 @@ interface Props {
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp } = useAuth();
+  const { theme } = useTheme();
 
   // Form validation with custom password match rule
   const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
@@ -78,6 +80,53 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', error.message);
     }
   }, [error]);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: theme.spacing.lg,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
+    },
+    title: {
+      ...theme.typography.h2,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
+    },
+    subtitle: {
+      ...theme.typography.body1,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+    },
+    form: {
+      marginBottom: theme.spacing.lg,
+    },
+    button: {
+      marginBottom: theme.spacing.md,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: theme.spacing.lg,
+    },
+    footerText: {
+      ...theme.typography.body2,
+      color: theme.colors.textSecondary,
+    },
+    link: {
+      ...theme.typography.body2,
+      color: theme.colors.primary,
+      fontWeight: '600',
+      marginLeft: 4,
+    },
+  });
 
   return (
     <KeyboardAvoidingView
@@ -155,43 +204,3 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginTop: 8,
-  },
-  form: {
-    marginVertical: 24,
-  },
-  button: {
-    marginBottom: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    fontSize: 14,
-  },
-  link: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-});

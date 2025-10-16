@@ -61,14 +61,10 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - run: npm install    
       - run:
           name: Run Jest tests
-          command: npm run test:coverage
-      - store_test_results:
-          path: ./coverage
-      - store_artifacts:
-          path: ./coverage
-          destination: coverage
+          command: npm run test
 
   # Deno lint and format check
   deno-check:
@@ -87,6 +83,28 @@ jobs:
           name: Run Deno format check
           command: |
             deno fmt --check --ignore=node_modules,coverage,.expo src/ || echo "Deno format check completed"
+
+  # Run Deno tests
+  deno-test:
+    executor: deno-executor
+    steps:
+      - checkout
+      - run:
+          name: Check Deno version
+          command: deno --version
+      - run:
+          name: Run Deno tests
+          command: deno test --allow-read tests/
+      - run:
+          name: Run Deno tests with coverage
+          command: |
+            deno test --allow-read --coverage=coverage_deno/ tests/
+            deno coverage coverage_deno/ --lcov --output=coverage_deno/lcov.info
+      - store_artifacts:
+          path: coverage_deno
+          destination: deno-coverage
+      - store_test_results:
+          path: coverage_deno
 
   # Build Expo project
   build:
@@ -122,9 +140,13 @@ workflows:
       - deno-check:
           requires:
             - install-dependencies
+      - deno-test:
+          requires:
+            - install-dependencies
       - build:
           requires:
             - lint
             - type-check
             - test
             - deno-check
+            - deno-test
