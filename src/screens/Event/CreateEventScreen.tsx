@@ -63,15 +63,19 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       const startDateTime = new Date(startDate);
       const endDateTime = new Date(endDate);
 
-      // Create event in app database
-      const eventData = {
+      // Create event in app database - don't include undefined fields
+      const eventData: any = {
         title: title.trim(),
         description: description.trim(),
         startDate: startDateTime,
         endDate: endDateTime,
-        groupId: groupId || undefined,
         createdBy: user.id,
       };
+
+      // Only add groupId if it exists (Firebase doesn't allow undefined values)
+      if (groupId) {
+        eventData.groupId = groupId;
+      }
 
       console.info('Creating event with data:', {
         ...eventData,
@@ -80,9 +84,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       });
 
       const createdEvent = await dataService.createEvent(eventData);
-      console.info('Event created successfully:', createdEvent);
-
-      // Try to sync to native calendar
+      console.info('Event created successfully:', createdEvent); // Try to sync to native calendar
       try {
         const { status } = await Calendar.getCalendarPermissionsAsync();
         console.info('Calendar permission status:', status);
