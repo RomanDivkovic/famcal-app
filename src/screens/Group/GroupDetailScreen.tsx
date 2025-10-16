@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Header, Card, Button, LoadingOverlay } from '../../components';
+import { Card, Header, Button, LoadingOverlay, InviteModal } from '../../components';
 import { RootStackParamList, Group } from '../../types';
 import { dataService } from '../../services';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [members, setMembers] = useState<
     Array<{ id: string; displayName: string; email: string; role: string }>
   >([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     loadGroupData();
@@ -235,8 +236,8 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Button
             title="Invite Members"
-            onPress={() => Alert.alert('Coming Soon', 'Invitation feature will be available soon')}
-            icon="person-add"
+            onPress={() => setShowInviteModal(true)}
+            icon={<Ionicons name="person-add" size={20} color="#ffffff" />}
             fullWidth
             style={styles.button}
           />
@@ -249,6 +250,13 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           />
         </View>
       </ScrollView>
+
+      <InviteModal
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        groupId={groupId}
+        groupName={group?.name || 'Group'}
+      />
     </View>
   );
 };

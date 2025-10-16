@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, GroupCard } from '../../components';
+import { Header, GroupCard, JoinGroupModal } from '../../components';
 import { dataService } from '../../services';
 import { Group } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   useEffect(() => {
     loadGroups();
@@ -111,7 +112,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header title="My Groups" />
+      <Header title="My Groups" rightIcon="enter" onRightPress={() => setShowJoinModal(true)} />
 
       <FlatList
         data={groups}
@@ -131,6 +132,12 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>
+
+      <JoinGroupModal
+        visible={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onSuccess={() => loadGroups()}
+      />
     </View>
   );
 };

@@ -12,3 +12,5 @@ export { TodoItem } from './TodoItem';
 export { LoadingOverlay } from './LoadingOverlay';
 export { ErrorModal } from './ErrorModal';
 export { ChangePasswordModal } from './ChangePasswordModal';
+export { InviteModal } from './InviteModal';
+export { JoinGroupModal } from './JoinGroupModal';
