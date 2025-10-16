@@ -9,3 +9,5 @@ export { Header } from './Header';
 export { GroupCard } from './Cards/GroupCard';
 export { EventCard } from './Cards/EventCard';
 export { TodoItem } from './TodoItem';
+export { LoadingOverlay } from './LoadingOverlay';
+export { ErrorModal } from './ErrorModal';

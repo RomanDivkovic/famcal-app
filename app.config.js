@@ -3,10 +3,10 @@ export default {
   slug: 'group-calendar',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/famcal.png',
   userInterfaceStyle: 'automatic',
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/famcal.png',
     resizeMode: 'contain',
     backgroundColor: '#1a3a52',
   },
@@ -24,14 +24,14 @@ export default {
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/famcal.png',
       backgroundColor: '#1a3a52',
     },
     package: 'com.groupcalendar.app',
     permissions: ['READ_CALENDAR', 'WRITE_CALENDAR'],
   },
   web: {
-    favicon: './assets/favicon.png',
+    favicon: './assets/famcal.png',
   },
   extra: {
     eas: {

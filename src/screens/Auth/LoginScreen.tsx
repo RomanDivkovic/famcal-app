@@ -3,19 +3,11 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button, Input } from '../../components';
+import { Button, Input, LoadingOverlay, ErrorModal } from '../../components';
 import { useForm, useAsync } from '../../hooks';
 import { AuthStackParamList } from '../../types';
 
@@ -28,6 +20,8 @@ interface Props {
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useTheme();
   const { signIn, signInWithGoogle } = useAuth();
+  const [errorModalVisible, setErrorModalVisible] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState('');
 
   // Form validation
   const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
@@ -65,10 +59,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     await signInWithGoogle();
   });
 
-  // Show error alerts
+  // Show error modal
   React.useEffect(() => {
     if (error) {
-      Alert.alert('Error', error.message);
+      setErrorMessage(error.message);
+      setErrorModalVisible(true);
     }
   }, [error]);
 
@@ -197,12 +192,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         />
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
+          <Text style={styles.footerText}>Don&apos;t have an account?</Text>
           <Text style={styles.link} onPress={() => navigation.navigate('Register')}>
             Sign Up
           </Text>
         </View>
       </ScrollView>
+
+      <LoadingOverlay visible={isLoading} />
+      <ErrorModal
+        visible={errorModalVisible}
+        message={errorMessage}
+        onClose={() => setErrorModalVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 };

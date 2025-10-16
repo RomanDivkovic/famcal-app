@@ -20,6 +20,8 @@ export const Card: React.FC<CardProps> = ({ children, style, onPress, elevation 
     backgroundColor: theme.colors.cardBackground,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...theme.shadows[elevation],
   };
 
