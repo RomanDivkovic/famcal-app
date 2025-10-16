@@ -127,7 +127,7 @@ export const Button = ({
         />
       ) : (
         <>
-          {icon && <>{icon}</>}
+          {icon}
           <Text style={[getTextStyle(), textStyle, icon ? { marginLeft: 8 } : null]}>{title}</Text>
         </>
       )}

@@ -69,11 +69,15 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         createdBy: user.id,
       };
 
+      console.info('Creating event with data:', eventData);
       await dataService.createEvent(eventData);
+      console.info('Event created successfully in database');
 
       // Try to sync to native calendar
       try {
         const { status } = await Calendar.getCalendarPermissionsAsync();
+        console.info('Calendar permission status:', status);
+
         if (status === 'granted') {
           const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
           const defaultCalendar = calendars.find((cal) => cal.allowsModifications) || calendars[0];
@@ -86,6 +90,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
               endDate: new Date(eventData.endDate),
               timeZone: 'GMT',
             });
+            console.info('Event synced to native calendar');
           }
         }
       } catch (calError) {
@@ -97,7 +102,8 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       navigation.goBack();
     } catch (error) {
       console.error('Error creating event:', error);
-      Alert.alert('Error', 'Failed to create event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -212,7 +218,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         <DateTimePicker
           value={startDate}
           mode="datetime"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, selectedDate) => {
             setShowStartPicker(Platform.OS === 'ios');
             if (selectedDate) {
@@ -230,7 +236,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         <DateTimePicker
           value={endDate}
           mode="datetime"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           minimumDate={startDate}
           onChange={(event, selectedDate) => {
             setShowEndPicker(Platform.OS === 'ios');

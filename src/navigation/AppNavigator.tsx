@@ -4,12 +4,14 @@
  */
 
 import React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingOverlay } from '../components';
 
 // Auth Screens
 import { LoginScreen } from '../screens/Auth/LoginScreen';
@@ -105,8 +107,11 @@ export const AppNavigator = () => {
   const { theme } = useTheme();
 
   if (loading) {
-    // You can add a loading screen here
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <LoadingOverlay visible={true} />
+      </View>
+    );
   }
 
   return (
