@@ -72,7 +72,20 @@ class FirebaseService implements IDataService {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return this.mapFirebaseUser(userCredential.user);
     } catch (error: any) {
-      throw new DataServiceError('Failed to sign in', error.code, error);
+      // Provide user-friendly error messages
+      let message = 'Failed to sign in';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        message = 'Invalid email or password';
+      } else if (error.code === 'auth/user-not-found') {
+        message = 'No account found with this email';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'Invalid email address';
+      } else if (error.code === 'auth/user-disabled') {
+        message = 'This account has been disabled';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Too many failed attempts. Please try again later';
+      }
+      throw new DataServiceError(message, error.code, error);
     }
   }
 
