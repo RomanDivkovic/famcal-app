@@ -3,13 +3,22 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Button, Input, LoadingOverlay, ErrorModal } from '../../components';
+import { Button, Input, LoadingOverlay, ErrorModal, TermsOfServiceModal } from '../../components';
 import { useForm, useAsync } from '../../hooks';
 import { AuthStackParamList } from '../../types';
+import { Ionicons } from '@expo/vector-icons';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -22,6 +31,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useTheme();
   const [errorModalVisible, setErrorModalVisible] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [acceptedTerms, setAcceptedTerms] = React.useState(false);
+  const [showTerms, setShowTerms] = React.useState(false);
 
   // Form validation with custom password match rule
   const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
@@ -65,13 +76,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (!isValid) {
       throw new Error('Please fix the form errors');
     }
+    if (!acceptedTerms) {
+      throw new Error('You must accept the Terms of Service to continue');
+    }
     await signUp(values.email, values.password, values.displayName);
   });
 
   // Show error modal
   React.useEffect(() => {
     if (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'An error occurred during registration');
       setErrorModalVisible(true);
     }
   }, [error]);
@@ -105,6 +119,35 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     },
     button: {
       marginBottom: theme.spacing.md,
+    },
+    termsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.xs,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      marginRight: theme.spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    termsText: {
+      ...theme.typography.body2,
+      color: theme.colors.textSecondary,
+      flex: 1,
+    },
+    termsLink: {
+      color: theme.colors.primary,
+      fontWeight: '600',
     },
     footer: {
       flexDirection: 'row',
@@ -180,6 +223,28 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
+        <TouchableOpacity
+          style={styles.termsContainer}
+          onPress={() => setAcceptedTerms(!acceptedTerms)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+            {acceptedTerms && <Ionicons name="checkmark" size={16} color="#ffffff" />}
+          </View>
+          <Text style={styles.termsText}>
+            I agree to the{' '}
+            <Text
+              style={styles.termsLink}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowTerms(true);
+              }}
+            >
+              Terms of Service
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
         <Button
           title="Sign Up"
           onPress={executeSignUp}
@@ -202,6 +267,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         visible={errorModalVisible}
         message={errorMessage}
         onClose={() => setErrorModalVisible(false)}
+      />
+      <TermsOfServiceModal
+        visible={showTerms}
+        onClose={() => setShowTerms(false)}
+        onAccept={() => setAcceptedTerms(true)}
+        showAcceptButton={true}
       />
     </KeyboardAvoidingView>
   );

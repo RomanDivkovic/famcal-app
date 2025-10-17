@@ -14,3 +14,5 @@ export { ErrorModal } from './ErrorModal';
 export { ChangePasswordModal } from './ChangePasswordModal';
 export { InviteModal } from './InviteModal';
 export { JoinGroupModal } from './JoinGroupModal';
+export { DeleteAccountModal } from './Modals/DeleteAccountModal';
+export { TermsOfServiceModal } from './Modals/TermsOfServiceModal';

@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -90,6 +91,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const deleteAccount = async (password: string) => {
+    try {
+      setLoading(true);
+      await dataService.deleteAccount(password);
+      setUser(null);
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -99,6 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signIn,
         signInWithGoogle,
         signOut,
+        deleteAccount,
         isAuthenticated: !!user,
       }}
     >

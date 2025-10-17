@@ -105,11 +105,12 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
       justifyContent: 'flex-end',
     },
     container: {
-      backgroundColor: theme.colors.background,
+      backgroundColor: '#FFFFFF',
       borderTopLeftRadius: theme.borderRadius.xl,
       borderTopRightRadius: theme.borderRadius.xl,
       padding: theme.spacing.xl,
-      maxHeight: '80%',
+      paddingBottom: theme.spacing.xxl,
+      minHeight: '50%',
     },
     header: {
       flexDirection: 'row',
@@ -119,7 +120,7 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
     },
     title: {
       ...theme.typography.h5,
-      color: theme.colors.text,
+      color: '#000000',
       fontWeight: '600',
     },
     closeButton: {
@@ -130,7 +131,7 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
     },
     description: {
       ...theme.typography.body2,
-      color: theme.colors.textSecondary,
+      color: '#666666',
       marginBottom: theme.spacing.xl,
       lineHeight: 22,
     },
@@ -138,13 +139,13 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
       marginBottom: theme.spacing.lg,
     },
     codeDisplay: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: '#F5F5F5',
       padding: theme.spacing.lg,
       borderRadius: theme.borderRadius.md,
       alignItems: 'center',
       marginTop: theme.spacing.md,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: '#E0E0E0',
     },
     codeText: {
       ...theme.typography.h4,
@@ -170,7 +171,7 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
             <View style={styles.header}>
               <Text style={styles.title}>Join Group</Text>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Ionicons name="close" size={28} color={theme.colors.text} />
+                <Ionicons name="close" size={28} color="#000000" />
               </TouchableOpacity>
             </View>
 

@@ -11,6 +11,9 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithCredential,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
 } from 'firebase/auth';
 import {
   ref,
@@ -61,9 +64,20 @@ class FirebaseService implements IDataService {
 
       return user;
     } catch (error: any) {
-      console.error('Firebase sign up error:', error);
-      const errorMessage = error.message || 'Failed to sign up';
-      throw new DataServiceError(errorMessage, error.code, error);
+      // Provide user-friendly error messages
+      let message = 'Failed to create account';
+      if (error.code === 'auth/email-already-in-use') {
+        message = 'This email is already registered. Please sign in instead.';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'Invalid email address';
+      } else if (error.code === 'auth/weak-password') {
+        message = 'Password is too weak. Please use at least 6 characters.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = 'Email/password accounts are not enabled. Please contact support.';
+      } else if (error.code === 'auth/network-request-failed') {
+        message = 'Network error. Please check your internet connection.';
+      }
+      throw new DataServiceError(message, error.code, error);
     }
   }
 
@@ -138,6 +152,78 @@ class FirebaseService implements IDataService {
       await update(userRef, updates);
     } catch (error: any) {
       throw new DataServiceError('Failed to update user profile', error.code, error);
+    }
+  }
+
+  async deleteAccount(password: string): Promise<void> {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser || !currentUser.email) {
+        throw new DataServiceError('No authenticated user found');
+      }
+
+      // Re-authenticate user with password
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      await reauthenticateWithCredential(currentUser, credential);
+
+      const userId = currentUser.uid;
+
+      // Delete user data from database
+      const userRef = ref(database, `users/${userId}`);
+      await remove(userRef);
+
+      // Delete all user's events
+      const eventsRef = ref(database, 'events');
+      const eventsSnapshot = await get(eventsRef);
+      if (eventsSnapshot.exists()) {
+        const deletions: Promise<void>[] = [];
+        eventsSnapshot.forEach((childSnapshot) => {
+          const event = childSnapshot.val();
+          if (event.createdBy === userId) {
+            deletions.push(remove(ref(database, `events/${childSnapshot.key}`)));
+          }
+        });
+        await Promise.all(deletions);
+      }
+
+      // Delete all user's todos
+      const todosRef = ref(database, 'todos');
+      const todosSnapshot = await get(todosRef);
+      if (todosSnapshot.exists()) {
+        const deletions: Promise<void>[] = [];
+        todosSnapshot.forEach((childSnapshot) => {
+          const todo = childSnapshot.val();
+          if (todo.createdBy === userId) {
+            deletions.push(remove(ref(database, `todos/${childSnapshot.key}`)));
+          }
+        });
+        await Promise.all(deletions);
+      }
+
+      // Remove user from all groups
+      const groupsRef = ref(database, 'groups');
+      const groupsSnapshot = await get(groupsRef);
+      if (groupsSnapshot.exists()) {
+        const updates: { [key: string]: any } = {};
+        groupsSnapshot.forEach((childSnapshot) => {
+          const group = childSnapshot.val();
+          if (group.members && group.members.includes(userId)) {
+            const newMembers = group.members.filter((id: string) => id !== userId);
+            updates[`groups/${childSnapshot.key}/members`] = newMembers;
+          }
+        });
+        if (Object.keys(updates).length > 0) {
+          await update(ref(database), updates);
+        }
+      }
+
+      // Finally, delete the Firebase auth user
+      await deleteUser(currentUser);
+    } catch (error: any) {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        throw new DataServiceError('Incorrect password. Please try again.', error.code, error);
+      }
+      throw new DataServiceError('Failed to delete account', error.code, error);
     }
   }
 
@@ -684,11 +770,25 @@ class FirebaseService implements IDataService {
   }
 
   private serializeEvent(event: Partial<Event>): any {
-    return {
-      ...event,
-      startDate: event.startDate?.toISOString(),
-      endDate: event.endDate?.toISOString(),
-    };
+    const serialized: any = {};
+
+    // Only add defined properties to avoid Firebase undefined error
+    Object.keys(event).forEach((key) => {
+      const value = (event as any)[key];
+      if (value !== undefined) {
+        serialized[key] = value;
+      }
+    });
+
+    // Convert Date objects to ISO strings
+    if (event.startDate) {
+      serialized.startDate = event.startDate.toISOString();
+    }
+    if (event.endDate) {
+      serialized.endDate = event.endDate.toISOString();
+    }
+
+    return serialized;
   }
 
   private deserializeEvent(data: any): Event {
@@ -700,12 +800,28 @@ class FirebaseService implements IDataService {
   }
 
   private serializeTodo(todo: Partial<Todo>): any {
-    return {
-      ...todo,
-      dueDate: todo.dueDate?.toISOString(),
-      createdAt: todo.createdAt?.toISOString(),
-      completedAt: todo.completedAt?.toISOString(),
-    };
+    const serialized: any = {};
+
+    // Only add defined properties to avoid Firebase undefined error
+    Object.keys(todo).forEach((key) => {
+      const value = (todo as any)[key];
+      if (value !== undefined) {
+        serialized[key] = value;
+      }
+    });
+
+    // Convert Date objects to ISO strings
+    if (todo.dueDate) {
+      serialized.dueDate = todo.dueDate.toISOString();
+    }
+    if (todo.createdAt) {
+      serialized.createdAt = todo.createdAt.toISOString();
+    }
+    if (todo.completedAt) {
+      serialized.completedAt = todo.completedAt.toISOString();
+    }
+
+    return serialized;
   }
 
   private deserializeTodo(data: any): Todo {

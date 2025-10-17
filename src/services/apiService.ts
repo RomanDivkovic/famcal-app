@@ -140,6 +140,11 @@ class ApiService implements IDataService {
     await this.patch(`/users/${userId}`, updates);
   }
 
+  async deleteAccount(password: string): Promise<void> {
+    await this.post('/auth/delete-account', { password });
+    this.authToken = null;
+  }
+
   // ==================== GROUPS ====================
 
   async getGroups(userId: string): Promise<Group[]> {

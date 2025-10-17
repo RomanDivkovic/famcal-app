@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
     leftSection: {
       flexDirection: 'row',
       alignItems: 'center',
-      flex: 1,
+      flex: showBack ? 0 : 1,
     },
     backButton: {
       padding: theme.spacing.xs,
@@ -49,10 +49,17 @@ export const Header: React.FC<HeaderProps> = ({
     title: {
       ...theme.typography.h5,
       color: theme.colors.headerText,
-      flex: 1,
+      flex: showBack ? 0 : 1,
+      textAlign: showBack ? 'center' : 'left',
+      position: showBack ? 'absolute' : 'relative',
+      left: showBack ? 0 : undefined,
+      right: showBack ? 0 : undefined,
     },
     rightButton: {
       padding: theme.spacing.xs,
+    },
+    rightPlaceholder: {
+      width: 40,
     },
   });
 
@@ -64,15 +71,24 @@ export const Header: React.FC<HeaderProps> = ({
             <Ionicons name="arrow-back" size={24} color={theme.colors.headerText} />
           </TouchableOpacity>
         )}
+        {!showBack && (
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+        )}
+      </View>
+      {showBack && (
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-      </View>
-      {rightIcon && onRightPress && (
+      )}
+      {rightIcon && onRightPress ? (
         <TouchableOpacity style={styles.rightButton} onPress={onRightPress}>
           <Ionicons name={rightIcon} size={24} color={theme.colors.headerText} />
         </TouchableOpacity>
-      )}
+      ) : showBack ? (
+        <View style={styles.rightPlaceholder} />
+      ) : null}
     </View>
   );
 };
