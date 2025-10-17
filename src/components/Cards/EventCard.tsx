@@ -40,18 +40,18 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
     container: {
       marginBottom: theme.spacing.md,
     },
+    cardInner: {
+      flexDirection: 'row',
+    },
     colorBar: {
       width: 4,
-      height: '100%',
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      borderTopLeftRadius: theme.borderRadius.lg,
-      borderBottomLeftRadius: theme.borderRadius.lg,
+      alignSelf: 'stretch',
+      backgroundColor: event.color || theme.colors.primary,
+      borderRadius: theme.borderRadius.sm,
+      marginRight: theme.spacing.sm,
     },
     content: {
-      marginLeft: theme.spacing.sm,
+      flex: 1,
     },
     title: {
       ...theme.typography.h6,
@@ -91,34 +91,36 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
 
   return (
     <Card style={styles.container} onPress={onPress}>
-      <View style={[styles.colorBar, { backgroundColor: event.color || theme.colors.primary }]} />
-      <View style={styles.content}>
-        <Text style={styles.title}>{event.title}</Text>
-        <View style={styles.dateContainer}>
-          <Ionicons
-            name="time"
-            size={16}
-            color={theme.colors.textSecondary}
-            style={styles.dateIcon}
-          />
-          <Text style={styles.dateText}>{formatEventDate()}</Text>
-        </View>
-        {event.location && (
-          <View style={styles.locationContainer}>
+      <View style={styles.cardInner}>
+        <View style={styles.colorBar} />
+        <View style={styles.content}>
+          <Text style={styles.title}>{event.title}</Text>
+          <View style={styles.dateContainer}>
             <Ionicons
-              name="location"
-              size={14}
+              name="time"
+              size={16}
               color={theme.colors.textSecondary}
-              style={styles.locationIcon}
+              style={styles.dateIcon}
             />
-            <Text style={styles.locationText}>{event.location}</Text>
+            <Text style={styles.dateText}>{formatEventDate()}</Text>
           </View>
-        )}
-        {event.description && (
-          <Text style={styles.description} numberOfLines={2}>
-            {event.description}
-          </Text>
-        )}
+          {event.location && (
+            <View style={styles.locationContainer}>
+              <Ionicons
+                name="location"
+                size={14}
+                color={theme.colors.textSecondary}
+                style={styles.locationIcon}
+              />
+              <Text style={styles.locationText}>{event.location}</Text>
+            </View>
+          )}
+          {event.description && (
+            <Text style={styles.description} numberOfLines={2}>
+              {event.description}
+            </Text>
+          )}
+        </View>
       </View>
     </Card>
   );

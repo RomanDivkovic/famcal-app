@@ -55,17 +55,29 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   // Google sign in async operation
-  const { execute: executeGoogleSignIn, loading: googleLoading } = useAsync<void, []>(async () => {
+  const {
+    execute: executeGoogleSignIn,
+    loading: googleLoading,
+    error: googleError,
+  } = useAsync<void, []>(async () => {
     await signInWithGoogle();
   });
 
-  // Show error modal
+  // Show error modal for sign in errors
   React.useEffect(() => {
     if (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'An error occurred during sign in');
       setErrorModalVisible(true);
     }
   }, [error]);
+
+  // Show error modal for Google sign in errors
+  React.useEffect(() => {
+    if (googleError) {
+      setErrorMessage(googleError.message || 'An error occurred during Google sign in');
+      setErrorModalVisible(true);
+    }
+  }, [googleError]);
 
   const isLoading = loading || googleLoading;
 

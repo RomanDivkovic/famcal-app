@@ -14,6 +14,7 @@ export interface IDataService {
   signOut(): Promise<void>;
   getCurrentUser(): Promise<User | null>;
   updateUserProfile(userId: string, updates: Partial<User>): Promise<void>;
+  deleteAccount(password: string): Promise<void>;
 
   // Groups
   getGroups(userId: string): Promise<Group[]>;

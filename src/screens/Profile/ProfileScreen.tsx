@@ -4,15 +4,30 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, Card, Button, ChangePasswordModal } from '../../components';
+import {
+  Header,
+  Card,
+  Button,
+  ChangePasswordModal,
+  DeleteAccountModal,
+  TermsOfServiceModal,
+} from '../../components';
 import { Ionicons } from '@expo/vector-icons';
 
+type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { theme, isDark, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const [showChangePassword, setShowChangePassword] = React.useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = React.useState(false);
+  const [showTermsOfService, setShowTermsOfService] = React.useState(false);
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -163,10 +178,51 @@ export const ProfileScreen: React.FC = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
           </Card>
+
+          <Card style={styles.settingItem} onPress={() => setShowDeleteAccount(true)}>
+            <View style={styles.settingLeft}>
+              <Ionicons
+                name="trash-outline"
+                size={24}
+                color={theme.colors.error}
+                style={styles.settingIcon}
+              />
+              <Text style={[styles.settingText, { color: theme.colors.error }]}>
+                Delete Account
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.error} />
+          </Card>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
+
+          <Card style={styles.settingItem} onPress={() => navigation.navigate('FAQ')}>
+            <View style={styles.settingLeft}>
+              <Ionicons
+                name="help-circle-outline"
+                size={24}
+                color={theme.colors.text}
+                style={styles.settingIcon}
+              />
+              <Text style={styles.settingText}>Help & FAQ</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          </Card>
+
+          <Card style={styles.settingItem} onPress={() => setShowTermsOfService(true)}>
+            <View style={styles.settingLeft}>
+              <Ionicons
+                name="document-text-outline"
+                size={24}
+                color={theme.colors.text}
+                style={styles.settingIcon}
+              />
+              <Text style={styles.settingText}>Terms of Service</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          </Card>
 
           <Card style={styles.settingItem}>
             <View style={styles.settingLeft}>
@@ -215,6 +271,13 @@ export const ProfileScreen: React.FC = () => {
       <ChangePasswordModal
         visible={showChangePassword}
         onClose={() => setShowChangePassword(false)}
+      />
+
+      <DeleteAccountModal visible={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} />
+
+      <TermsOfServiceModal
+        visible={showTermsOfService}
+        onClose={() => setShowTermsOfService(false)}
       />
     </View>
   );
