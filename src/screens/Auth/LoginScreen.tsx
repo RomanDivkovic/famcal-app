@@ -66,7 +66,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   // Show error modal for sign in errors
   React.useEffect(() => {
     if (error) {
-      setErrorMessage(error.message || 'An error occurred during sign in');
+      const message = error.message || 'An error occurred during sign in';
+      console.info('Showing error modal:', message);
+      setErrorMessage(message);
       setErrorModalVisible(true);
     }
   }, [error]);
@@ -74,10 +76,17 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   // Show error modal for Google sign in errors
   React.useEffect(() => {
     if (googleError) {
-      setErrorMessage(googleError.message || 'An error occurred during Google sign in');
+      const message = googleError.message || 'An error occurred during Google sign in';
+      console.info('Showing Google error modal:', message);
+      setErrorMessage(message);
       setErrorModalVisible(true);
     }
   }, [googleError]);
+
+  const handleCloseErrorModal = () => {
+    setErrorModalVisible(false);
+    setErrorMessage('');
+  };
 
   const isLoading = loading || googleLoading;
 
@@ -215,7 +224,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       <ErrorModal
         visible={errorModalVisible}
         message={errorMessage}
-        onClose={() => setErrorModalVisible(false)}
+        onClose={handleCloseErrorModal}
       />
     </KeyboardAvoidingView>
   );

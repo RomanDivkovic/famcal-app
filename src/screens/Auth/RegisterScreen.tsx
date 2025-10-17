@@ -85,10 +85,17 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   // Show error modal
   React.useEffect(() => {
     if (error) {
-      setErrorMessage(error.message || 'An error occurred during registration');
+      const message = error.message || 'An error occurred during registration';
+      console.info('Showing error modal:', message);
+      setErrorMessage(message);
       setErrorModalVisible(true);
     }
   }, [error]);
+
+  const handleCloseErrorModal = () => {
+    setErrorModalVisible(false);
+    setErrorMessage('');
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -266,7 +273,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       <ErrorModal
         visible={errorModalVisible}
         message={errorMessage}
-        onClose={() => setErrorModalVisible(false)}
+        onClose={handleCloseErrorModal}
       />
       <TermsOfServiceModal
         visible={showTerms}
