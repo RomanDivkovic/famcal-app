@@ -433,16 +433,29 @@ class FirebaseService implements IDataService {
 
   async getEventsForUser(userId: string): Promise<Event[]> {
     try {
+      console.info('[FirebaseService] Getting events for user:', userId);
+
       // Get user's groups
       const groups = await this.getGroups(userId);
       const groupIds = groups.map((g) => g.id);
+      console.info('[FirebaseService] User group IDs:', groupIds);
 
       // Get all events
       const allEvents = await this.getEvents();
+      console.info('[FirebaseService] Total events in database:', allEvents.length);
 
-      // Filter events that belong to user's groups or are personal
-      return allEvents.filter((event) => !event.groupId || groupIds.includes(event.groupId));
+      // Filter events that belong to user's groups or are created by user (personal events)
+      const userEvents = allEvents.filter(
+        (event) =>
+          event.createdBy === userId || // Personal events created by user
+          (!event.groupId && event.createdBy === userId) || // Personal events without group
+          (event.groupId && groupIds.includes(event.groupId)) // Group events
+      );
+
+      console.info('[FirebaseService] Filtered events for user:', userEvents.length);
+      return userEvents;
     } catch (error: any) {
+      console.error('[FirebaseService] Error getting events for user:', error);
       throw new DataServiceError('Failed to get events for user', error.code, error);
     }
   }
