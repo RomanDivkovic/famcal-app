@@ -46,6 +46,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     execute: executeSignIn,
     loading,
     error,
+    reset: resetSignIn,
   } = useAsync<void, []>(async () => {
     const isValid = validateAll();
     if (!isValid) {
@@ -59,6 +60,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     execute: executeGoogleSignIn,
     loading: googleLoading,
     error: googleError,
+    reset: resetGoogleSignIn,
   } = useAsync<void, []>(async () => {
     await signInWithGoogle();
   });
@@ -86,6 +88,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleCloseErrorModal = () => {
     setErrorModalVisible(false);
     setErrorMessage('');
+    // Reset the async hook error states so they can trigger again
+    resetSignIn();
+    resetGoogleSignIn();
   };
 
   const isLoading = loading || googleLoading;

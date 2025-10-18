@@ -160,6 +160,15 @@ class ApiService implements IDataService {
     }
   }
 
+  async findGroupByInviteCode(inviteCode: string): Promise<Group | null> {
+    try {
+      return await this.get<Group>(`/groups/by-invite/${inviteCode}`);
+    } catch (error: any) {
+      if (error.code === 'HTTP_404') return null;
+      throw error;
+    }
+  }
+
   async createGroup(name: string, description: string, userId: string): Promise<Group> {
     return this.post<Group>('/groups', { name, description, userId });
   }

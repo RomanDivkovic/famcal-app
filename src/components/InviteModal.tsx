@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Share, Alert } from 'r
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './index';
 import { Ionicons } from '@expo/vector-icons';
+import { dataService } from '../services';
 
 interface InviteModalProps {
   visible: boolean;
@@ -20,25 +21,30 @@ interface InviteModalProps {
 export const InviteModal: React.FC<InviteModalProps> = ({
   visible,
   onClose,
-  groupId: _groupId,
+  groupId,
   groupName,
   onInviteCreated,
 }) => {
   const { theme } = useTheme();
   const [inviteCode, setInviteCode] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const generateInviteCode = useCallback(() => {
-    // Generate a 6-character alphanumeric code
-    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like 0, O, 1, I
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += characters.charAt(Math.floor(Math.random() * characters.length));
+  const generateInviteCode = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Generate and save the invite code to Firebase
+      const code = await dataService.generateInviteCode(groupId);
+      setInviteCode(code);
+      if (onInviteCreated) {
+        onInviteCreated(code);
+      }
+    } catch (error) {
+      console.error('Error generating invite code:', error);
+      Alert.alert('Error', 'Failed to generate invite code. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setInviteCode(code);
-    if (onInviteCreated) {
-      onInviteCreated(code);
-    }
-  }, [onInviteCreated]);
+  }, [groupId, onInviteCreated]);
 
   useEffect(() => {
     if (visible) {
@@ -185,11 +191,17 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
               <View style={styles.codeContainer}>
                 <Text style={styles.codeLabel}>Invite Code</Text>
-                <Text style={styles.code}>{inviteCode}</Text>
-                <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
-                  <Ionicons name="copy-outline" size={20} color={theme.colors.primary} />
-                  <Text style={styles.copyButtonText}>Copy Code</Text>
-                </TouchableOpacity>
+                {loading ? (
+                  <Text style={styles.code}>Generating...</Text>
+                ) : (
+                  <>
+                    <Text style={styles.code}>{inviteCode}</Text>
+                    <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
+                      <Ionicons name="copy-outline" size={20} color={theme.colors.primary} />
+                      <Text style={styles.copyButtonText}>Copy Code</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
 
               <Text style={styles.instructionsTitle}>How to join:</Text>
@@ -227,6 +239,8 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 onPress={generateInviteCode}
                 variant="outline"
                 fullWidth
+                loading={loading}
+                disabled={loading}
                 icon={<Ionicons name="refresh" size={20} color={theme.colors.primary} />}
               />
               <Button title="Done" onPress={onClose} variant="text" fullWidth />

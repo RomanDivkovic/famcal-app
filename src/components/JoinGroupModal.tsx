@@ -17,6 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Input, Button } from './index';
 import { Ionicons } from '@expo/vector-icons';
+import { dataService } from '../services';
 
 interface JoinGroupModalProps {
   visible: boolean;
@@ -44,44 +45,52 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
     try {
       setLoading(true);
 
-      // For now, we'll simulate joining by checking if the code format is valid
-      // In a real implementation, you would call a backend API to validate the code
-      // and add the user to the group
-
+      // Format the code
       const codeUpper = inviteCode.toUpperCase().replace(/\s/g, '');
-      if (codeUpper.length !== 6) {
-        Alert.alert('Invalid Code', 'Invite code must be 6 characters');
+      if (codeUpper.length !== 6 && codeUpper.length !== 8) {
+        Alert.alert('Invalid Code', 'Invite code must be 6-8 characters');
         return;
       }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Find the group by invite code
+      const group = await dataService.findGroupByInviteCode(codeUpper);
 
-      // In a real app, you would:
-      // 1. Validate the code against Firebase
-      // 2. Check if it's expired
-      // 3. Add the user to the group
-      // 4. Return the group information
+      if (!group) {
+        Alert.alert(
+          'Invalid Code',
+          'No group found with this invite code. Please check the code and try again.'
+        );
+        return;
+      }
 
-      Alert.alert(
-        'Coming Soon',
-        'Group invitation system is being finalized. The invite code format is valid!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setInviteCode('');
-              if (onSuccess) {
-                onSuccess();
-              }
-              onClose();
-            },
+      // Check if user is already a member
+      if (group.members.includes(user.id)) {
+        Alert.alert('Already a Member', `You are already a member of ${group.name}`);
+        setInviteCode('');
+        onClose();
+        return;
+      }
+
+      // Join the group
+      await dataService.joinGroup(group.id, user.id, codeUpper);
+
+      Alert.alert('Success!', `You have joined ${group.name}`, [
+        {
+          text: 'OK',
+          onPress: () => {
+            setInviteCode('');
+            if (onSuccess) {
+              onSuccess();
+            }
+            onClose();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
       console.error('Error joining group:', error);
-      Alert.alert('Error', 'Failed to join group. Please check the code and try again.');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to join group. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
