@@ -4,7 +4,16 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Share, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  Share,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './index';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,7 +91,8 @@ export const InviteModal: React.FC<InviteModalProps> = ({
       borderTopLeftRadius: theme.borderRadius.xl,
       borderTopRightRadius: theme.borderRadius.xl,
       padding: theme.spacing.xl,
-      maxHeight: '80%',
+      maxHeight: '90%',
+      minHeight: '60%',
     },
     header: {
       flexDirection: 'row',
@@ -169,6 +179,12 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     buttonContainer: {
       gap: theme.spacing.md,
     },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: theme.spacing.xl,
+    },
   });
 
   return (
@@ -183,68 +199,75 @@ export const InviteModal: React.FC<InviteModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
-              <Text style={styles.description}>
-                Share this code with people you want to invite to {groupName}. The code is valid for
-                7 days.
-              </Text>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.content}>
+                <Text style={styles.description}>
+                  Share this code with people you want to invite to {groupName}. The code is valid
+                  for 7 days.
+                </Text>
 
-              <View style={styles.codeContainer}>
-                <Text style={styles.codeLabel}>Invite Code</Text>
-                {loading ? (
-                  <Text style={styles.code}>Generating...</Text>
-                ) : (
-                  <>
-                    <Text style={styles.code}>{inviteCode}</Text>
-                    <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
-                      <Ionicons name="copy-outline" size={20} color={theme.colors.primary} />
-                      <Text style={styles.copyButtonText}>Copy Code</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
+                <View style={styles.codeContainer}>
+                  <Text style={styles.codeLabel}>Invite Code</Text>
+                  {loading ? (
+                    <Text style={styles.code}>Generating...</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.code}>{inviteCode}</Text>
+                      <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
+                        <Ionicons name="copy-outline" size={20} color={theme.colors.primary} />
+                        <Text style={styles.copyButtonText}>Copy Code</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+
+                <Text style={styles.instructionsTitle}>How to join:</Text>
+                <View style={styles.instructionsList}>
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.instructionNumber}>1.</Text>
+                    <Text style={styles.instructionText}>
+                      Open the Family Calendar app or create an account
+                    </Text>
+                  </View>
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.instructionNumber}>2.</Text>
+                    <Text style={styles.instructionText}>Go to the Home (Groups) screen</Text>
+                  </View>
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.instructionNumber}>3.</Text>
+                    <Text style={styles.instructionText}>
+                      Tap the &quot;Join Group&quot; button
+                    </Text>
+                  </View>
+                  <View style={styles.instructionItem}>
+                    <Text style={styles.instructionNumber}>4.</Text>
+                    <Text style={styles.instructionText}>Enter the invite code above</Text>
+                  </View>
+                </View>
               </View>
 
-              <Text style={styles.instructionsTitle}>How to join:</Text>
-              <View style={styles.instructionsList}>
-                <View style={styles.instructionItem}>
-                  <Text style={styles.instructionNumber}>1.</Text>
-                  <Text style={styles.instructionText}>
-                    Open the Family Calendar app or create an account
-                  </Text>
-                </View>
-                <View style={styles.instructionItem}>
-                  <Text style={styles.instructionNumber}>2.</Text>
-                  <Text style={styles.instructionText}>Go to the Home (Groups) screen</Text>
-                </View>
-                <View style={styles.instructionItem}>
-                  <Text style={styles.instructionNumber}>3.</Text>
-                  <Text style={styles.instructionText}>Tap the &quot;Join Group&quot; button</Text>
-                </View>
-                <View style={styles.instructionItem}>
-                  <Text style={styles.instructionNumber}>4.</Text>
-                  <Text style={styles.instructionText}>Enter the invite code above</Text>
-                </View>
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Share Invite Code"
+                  onPress={handleShare}
+                  icon={<Ionicons name="share-social" size={20} color="#ffffff" />}
+                  fullWidth
+                />
+                <Button
+                  title="Generate New Code"
+                  onPress={generateInviteCode}
+                  variant="outline"
+                  fullWidth
+                  loading={loading}
+                  disabled={loading}
+                  icon={<Ionicons name="refresh" size={20} color={theme.colors.primary} />}
+                />
               </View>
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <Button
-                title="Share Invite Code"
-                onPress={handleShare}
-                icon={<Ionicons name="share-social" size={20} color="#ffffff" />}
-                fullWidth
-              />
-              <Button
-                title="Generate New Code"
-                onPress={generateInviteCode}
-                variant="outline"
-                fullWidth
-                loading={loading}
-                disabled={loading}
-                icon={<Ionicons name="refresh" size={20} color={theme.colors.primary} />}
-              />
-              <Button title="Done" onPress={onClose} variant="text" fullWidth />
-            </View>
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </TouchableOpacity>

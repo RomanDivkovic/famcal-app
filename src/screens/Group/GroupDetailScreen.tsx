@@ -45,16 +45,30 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
       // Load members information
       if (groupData?.members && groupData.members.length > 0) {
+        console.info('Loading members:', groupData.members);
         const membersList = await Promise.all(
           groupData.members.map(async (memberId) => {
             try {
               // Fetch user data for each member
+              console.info('Fetching user data for:', memberId);
               const userData = await dataService.getUserById(memberId);
+              console.info('User data received:', userData);
+
+              if (!userData) {
+                console.warn('No user data found for:', memberId);
+                return {
+                  id: memberId,
+                  displayName: 'Unknown User',
+                  email: '',
+                  role: memberId === groupData.createdBy ? 'Owner' : 'Member',
+                };
+              }
+
               return {
                 id: memberId,
                 displayName:
-                  userData?.displayName || userData?.email?.split('@')[0] || 'Unknown User',
-                email: userData?.email || '',
+                  userData.displayName || userData.email?.split('@')[0] || 'Unknown User',
+                email: userData.email || '',
                 role: memberId === groupData.createdBy ? 'Owner' : 'Member',
               };
             } catch (error) {
@@ -68,6 +82,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             }
           })
         );
+        console.info('Members list loaded:', membersList);
         setMembers(membersList);
       }
     } catch (error) {
