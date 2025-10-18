@@ -129,20 +129,25 @@ class FirebaseService implements IDataService {
   }
 
   async getCurrentUser(): Promise<User | null> {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return null;
-
     try {
-      const userRef = ref(database, `users/${firebaseUser.uid}`);
-      const snapshot = await get(userRef);
-
-      if (snapshot.exists()) {
-        return this.deserializeUser(snapshot.val());
-      }
-
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) return null;
       return this.mapFirebaseUser(firebaseUser);
     } catch (error: any) {
       throw new DataServiceError('Failed to get current user', error.code, error);
+    }
+  }
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      const userRef = ref(database, `users/${userId}`);
+      const snapshot = await get(userRef);
+
+      if (!snapshot.exists()) return null;
+
+      return this.deserializeUser(snapshot.val());
+    } catch (error: any) {
+      throw new DataServiceError('Failed to get user by ID', error.code, error);
     }
   }
 

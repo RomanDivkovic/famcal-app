@@ -50,7 +50,7 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
 
       // Create todo in app database - don't include undefined fields
       const todoData: any = {
-        title: title.trim(),
+        text: title.trim(),
         description: description.trim(),
         dueDate: new Date(dueDate),
         completed: false,

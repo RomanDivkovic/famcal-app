@@ -127,12 +127,19 @@ class ApiService implements IDataService {
   }
 
   async getCurrentUser(): Promise<User | null> {
-    if (!this.authToken) return null;
-
     try {
       return await this.get<User>('/auth/me');
-    } catch (error) {
+    } catch (error: any) {
       return null;
+    }
+  }
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      return await this.get<User>(`/users/${userId}`);
+    } catch (error: any) {
+      if (error.code === 'HTTP_404') return null;
+      throw error;
     }
   }
 
