@@ -13,6 +13,7 @@ export interface IDataService {
   signInWithGoogle(): Promise<User>;
   signOut(): Promise<void>;
   getCurrentUser(): Promise<User | null>;
+  getUserById(userId: string): Promise<User | null>;
   updateUserProfile(userId: string, updates: Partial<User>): Promise<void>;
   deleteAccount(password: string): Promise<void>;
 

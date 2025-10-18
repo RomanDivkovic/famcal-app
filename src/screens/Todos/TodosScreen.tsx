@@ -221,11 +221,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <FlatList
         data={filteredTodos}
         renderItem={({ item }) => (
-          <TodoItem
-            todo={item}
-            onPress={() => navigation.navigate('TodoDetail', { todoId: item.id })}
-            onToggle={() => handleToggleTodo(item.id)}
-          />
+          <TodoItem todo={item} onToggle={() => handleToggleTodo(item.id)} />
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.content, filteredTodos.length === 0 && { flex: 1 }]}
