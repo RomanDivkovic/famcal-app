@@ -16,3 +16,4 @@ export { InviteModal } from './InviteModal';
 export { JoinGroupModal } from './JoinGroupModal';
 export { DeleteAccountModal } from './Modals/DeleteAccountModal';
 export { TermsOfServiceModal } from './Modals/TermsOfServiceModal';
+export { DateTimePickerModal } from './DateTimePickerModal';
