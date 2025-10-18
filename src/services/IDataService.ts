@@ -19,6 +19,7 @@ export interface IDataService {
   // Groups
   getGroups(userId: string): Promise<Group[]>;
   getGroupById(groupId: string): Promise<Group | null>;
+  findGroupByInviteCode(inviteCode: string): Promise<Group | null>;
   createGroup(name: string, description: string, userId: string): Promise<Group>;
   updateGroup(groupId: string, updates: Partial<Group>): Promise<void>;
   deleteGroup(groupId: string): Promise<void>;

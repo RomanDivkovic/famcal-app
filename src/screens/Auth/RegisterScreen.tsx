@@ -71,6 +71,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     execute: executeSignUp,
     loading,
     error,
+    reset: resetSignUp,
   } = useAsync<void, []>(async () => {
     const isValid = validateAll();
     if (!isValid) {
@@ -95,6 +96,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const handleCloseErrorModal = () => {
     setErrorModalVisible(false);
     setErrorMessage('');
+    // Reset the async hook error state so it can trigger again
+    resetSignUp();
   };
 
   const styles = StyleSheet.create({

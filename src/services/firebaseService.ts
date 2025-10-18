@@ -263,6 +263,28 @@ class FirebaseService implements IDataService {
     }
   }
 
+  async findGroupByInviteCode(inviteCode: string): Promise<Group | null> {
+    try {
+      const groupsRef = ref(database, 'groups');
+      const inviteQuery = query(groupsRef, orderByChild('inviteCode'), equalTo(inviteCode));
+      const snapshot = await get(inviteQuery);
+
+      if (!snapshot.exists()) return null;
+
+      // Get the first matching group (should only be one)
+      let foundGroup: Group | null = null;
+      snapshot.forEach((childSnapshot) => {
+        if (!foundGroup) {
+          foundGroup = this.deserializeGroup(childSnapshot.val());
+        }
+      });
+
+      return foundGroup;
+    } catch (error: any) {
+      throw new DataServiceError('Failed to find group by invite code', error.code, error);
+    }
+  }
+
   async createGroup(name: string, description: string, userId: string): Promise<Group> {
     try {
       const groupsRef = ref(database, 'groups');
