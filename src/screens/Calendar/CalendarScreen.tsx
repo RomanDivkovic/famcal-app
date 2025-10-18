@@ -21,8 +21,9 @@ import { dataService } from '../../services';
 import { Event, MainTabParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
-import { startOfMonth, endOfMonth, addMonths, subMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 import { useEvents } from '../../hooks';
+import { Calendar as RNCalendar, DateData } from 'react-native-calendars';
 
 type CalendarScreenNavigationProp = NativeStackNavigationProp<MainTabParamList, 'Calendar'>;
 
@@ -35,7 +36,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const { events, loading, refresh } = useEvents(user?.id);
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [calendarPermission, setCalendarPermission] = useState(false);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
 
@@ -44,20 +45,48 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     checkCalendarPermission();
   }, []);
 
-  // Filter events by current month
+  // Filter events by selected date
   useEffect(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-
-    const monthEvents = events.filter((event) => {
-      const eventDate = new Date(event.startDate);
-      return eventDate >= start && eventDate <= end;
+    const dayEvents = events.filter((event) => {
+      const eventDate = format(new Date(event.startDate), 'yyyy-MM-dd');
+      return eventDate === selectedDate;
     });
 
     setFilteredEvents(
-      monthEvents.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+      dayEvents.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     );
-  }, [events, currentMonth]);
+  }, [events, selectedDate]);
+
+  // Create marked dates object for calendar
+  const markedDates = React.useMemo(() => {
+    const marked: {
+      [key: string]: {
+        marked?: boolean;
+        dots?: Array<{ color: string }>;
+        selected?: boolean;
+        selectedColor?: string;
+      };
+    } = {};
+
+    events.forEach((event) => {
+      const dateKey = format(new Date(event.startDate), 'yyyy-MM-dd');
+      if (!marked[dateKey]) {
+        marked[dateKey] = { marked: true, dots: [] };
+      }
+      marked[dateKey].dots!.push({
+        color: theme.colors.primary,
+      });
+    });
+
+    // Mark selected date
+    marked[selectedDate] = {
+      ...(marked[selectedDate] || {}),
+      selected: true,
+      selectedColor: theme.colors.primary,
+    };
+
+    return marked;
+  }, [events, selectedDate, theme.colors.primary]);
 
   const checkCalendarPermission = async () => {
     const { status } = await Calendar.getCalendarPermissionsAsync();
@@ -134,14 +163,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     [calendarPermission, syncEventToNativeCalendar]
   );
 
-  const handlePreviousMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1));
-  };
-
   const handleCreateEvent = () => {
     // @ts-expect-error - CreateEvent is in RootStack but not in MainTab
     navigation.navigate('CreateEvent');
@@ -177,21 +198,20 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    monthSelector: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+    selectedDateHeader: {
       padding: theme.spacing.md,
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },
-    monthButton: {
-      padding: theme.spacing.sm,
-    },
-    monthText: {
+    selectedDateText: {
       ...theme.typography.h6,
       color: theme.colors.text,
+      marginBottom: theme.spacing.xs,
+    },
+    eventCountText: {
+      ...theme.typography.body2,
+      color: theme.colors.textSecondary,
     },
     content: {
       padding: theme.spacing.md,
@@ -254,17 +274,37 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Header title="Calendar" rightIcon="calendar" onRightPress={openNativeCalendar} />
 
-      <View style={styles.monthSelector}>
-        <TouchableOpacity style={styles.monthButton} onPress={handlePreviousMonth}>
-          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-
-        <Text style={styles.monthText}>{format(currentMonth, 'MMMM yyyy')}</Text>
-
-        <TouchableOpacity style={styles.monthButton} onPress={handleNextMonth}>
-          <Ionicons name="chevron-forward" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-      </View>
+      {/* Calendar View */}
+      <RNCalendar
+        current={selectedDate}
+        onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
+        markedDates={markedDates}
+        markingType="multi-dot"
+        theme={{
+          backgroundColor: theme.colors.background,
+          calendarBackground: theme.colors.surface,
+          textSectionTitleColor: theme.colors.textSecondary,
+          selectedDayBackgroundColor: theme.colors.primary,
+          selectedDayTextColor: '#ffffff',
+          todayTextColor: theme.colors.primary,
+          dayTextColor: theme.colors.text,
+          textDisabledColor: theme.colors.border,
+          dotColor: theme.colors.primary,
+          selectedDotColor: '#ffffff',
+          arrowColor: theme.colors.primary,
+          monthTextColor: theme.colors.text,
+          indicatorColor: theme.colors.primary,
+          textDayFontFamily: 'Inter',
+          textMonthFontFamily: 'Inter',
+          textDayHeaderFontFamily: 'Inter',
+          textDayFontWeight: '400',
+          textMonthFontWeight: '600',
+          textDayHeaderFontWeight: '500',
+          textDayFontSize: 14,
+          textMonthFontSize: 16,
+          textDayHeaderFontSize: 12,
+        }}
+      />
 
       {!calendarPermission && (
         <Button
@@ -274,6 +314,16 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.syncButton}
         />
       )}
+
+      {/* Events for Selected Day */}
+      <View style={styles.selectedDateHeader}>
+        <Text style={styles.selectedDateText}>
+          {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
+        </Text>
+        <Text style={styles.eventCountText}>
+          {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+        </Text>
+      </View>
 
       <FlatList
         data={filteredEvents}
