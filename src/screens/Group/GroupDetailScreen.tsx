@@ -43,17 +43,32 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       const groupData = await dataService.getGroupById(groupId);
       setGroup(groupData);
 
-      // Load members (this might need to be added to your data service)
-      // For now, we'll show the creator as the only member
-      if (groupData?.createdBy) {
-        setMembers([
-          {
-            id: groupData.createdBy,
-            displayName: 'Group Creator',
-            email: '',
-            role: 'owner',
-          },
-        ]);
+      // Load members information
+      if (groupData?.members && groupData.members.length > 0) {
+        const membersList = await Promise.all(
+          groupData.members.map(async (memberId) => {
+            try {
+              // Fetch user data for each member
+              const userData = await dataService.getUserById(memberId);
+              return {
+                id: memberId,
+                displayName:
+                  userData?.displayName || userData?.email?.split('@')[0] || 'Unknown User',
+                email: userData?.email || '',
+                role: memberId === groupData.createdBy ? 'Owner' : 'Member',
+              };
+            } catch (error) {
+              console.error('Error loading member:', memberId, error);
+              return {
+                id: memberId,
+                displayName: 'Unknown User',
+                email: '',
+                role: memberId === groupData.createdBy ? 'Owner' : 'Member',
+              };
+            }
+          })
+        );
+        setMembers(membersList);
       }
     } catch (error) {
       console.error('Error loading group:', error);
