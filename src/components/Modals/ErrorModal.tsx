@@ -17,21 +17,32 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
 }) => {
   const { theme } = useTheme();
 
+  // Don't render if not visible
+  if (!visible) return null;
+
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>{message}</Text>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.primary }]}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>OK</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+            <Text style={[styles.message, { color: theme.colors.textSecondary }]}>{message}</Text>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: theme.colors.primary }]}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.buttonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };

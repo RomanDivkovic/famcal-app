@@ -140,13 +140,21 @@ class FirebaseService implements IDataService {
 
   async getUserById(userId: string): Promise<User | null> {
     try {
+      console.info('getUserById called with userId:', userId);
       const userRef = ref(database, `users/${userId}`);
       const snapshot = await get(userRef);
 
-      if (!snapshot.exists()) return null;
+      console.info('getUserById snapshot exists:', snapshot.exists());
+      if (!snapshot.exists()) {
+        console.warn('getUserById: No data found for user:', userId);
+        return null;
+      }
 
-      return this.deserializeUser(snapshot.val());
+      const userData = this.deserializeUser(snapshot.val());
+      console.info('getUserById returning user data:', userData);
+      return userData;
     } catch (error: any) {
+      console.error('getUserById error:', error);
       throw new DataServiceError('Failed to get user by ID', error.code, error);
     }
   }
