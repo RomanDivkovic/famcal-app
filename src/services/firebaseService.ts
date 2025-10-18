@@ -55,12 +55,10 @@ class FirebaseService implements IDataService {
         createdAt: new Date(),
       };
 
-      // Store user data in database
-      // Remove undefined values to prevent Firebase errors
-      const userDataForDb = Object.fromEntries(
-        Object.entries(user).filter(([_, value]) => value !== undefined)
-      );
-      await set(ref(database, `users/${user.id}`), userDataForDb);
+      // Store user data in database using serializer to convert Date properly
+      console.info('Saving user to database:', user);
+      await set(ref(database, `users/${user.id}`), this.serializeUser(user));
+      console.info('User saved successfully to database');
 
       return user;
     } catch (error: any) {
@@ -869,10 +867,14 @@ class FirebaseService implements IDataService {
   }
 
   private serializeUser(user: Partial<User>): any {
-    return {
+    const serialized = {
       ...user,
       createdAt: user.createdAt?.toISOString(),
     };
+    // Remove undefined values to prevent Firebase errors
+    return Object.fromEntries(
+      Object.entries(serialized).filter(([_, value]) => value !== undefined)
+    );
   }
 
   private deserializeUser(data: any): User {

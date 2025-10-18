@@ -4,23 +4,14 @@
  */
 
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Alert,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, Button, Input, LoadingOverlay } from '../../components';
+import { Header, Button, Input, LoadingOverlay, DateTimePickerModal } from '../../components';
 import { RootStackParamList } from '../../types';
 import { dataService } from '../../services';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 
@@ -225,58 +216,32 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {showStartPicker && (
-        <DateTimePicker
-          value={startDate}
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={theme.isDark ? 'dark' : 'light'}
-          onChange={(event, selectedDate) => {
-            // On Android, close immediately after selection
-            if (Platform.OS === 'android') {
-              setShowStartPicker(false);
-            }
-            if (event.type === 'set' && selectedDate) {
-              setStartDate(selectedDate);
-              // Auto-adjust end date if it's before start date
-              if (selectedDate > endDate) {
-                setEndDate(new Date(selectedDate.getTime() + 60 * 60 * 1000));
-              }
-              // Close picker on iOS after selection
-              if (Platform.OS === 'ios') {
-                setShowStartPicker(false);
-              }
-            } else if (event.type === 'dismissed') {
-              setShowStartPicker(false);
-            }
-          }}
-        />
-      )}
+      <DateTimePickerModal
+        visible={showStartPicker}
+        onClose={() => setShowStartPicker(false)}
+        value={startDate}
+        onChange={(selectedDate) => {
+          setStartDate(selectedDate);
+          // Auto-adjust end date if it's before start date
+          if (selectedDate > endDate) {
+            setEndDate(new Date(selectedDate.getTime() + 60 * 60 * 1000));
+          }
+        }}
+        mode="datetime"
+        title="Välj Starttid"
+      />
 
-      {showEndPicker && (
-        <DateTimePicker
-          value={endDate}
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={theme.isDark ? 'dark' : 'light'}
-          minimumDate={startDate}
-          onChange={(event, selectedDate) => {
-            // On Android, close immediately after selection
-            if (Platform.OS === 'android') {
-              setShowEndPicker(false);
-            }
-            if (event.type === 'set' && selectedDate) {
-              setEndDate(selectedDate);
-              // Close picker on iOS after selection
-              if (Platform.OS === 'ios') {
-                setShowEndPicker(false);
-              }
-            } else if (event.type === 'dismissed') {
-              setShowEndPicker(false);
-            }
-          }}
-        />
-      )}
+      <DateTimePickerModal
+        visible={showEndPicker}
+        onClose={() => setShowEndPicker(false)}
+        value={endDate}
+        onChange={(selectedDate) => {
+          setEndDate(selectedDate);
+        }}
+        mode="datetime"
+        minimumDate={startDate}
+        title="Välj Sluttid"
+      />
 
       <LoadingOverlay visible={loading} />
     </View>
