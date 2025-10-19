@@ -28,6 +28,7 @@
     "dotenv": "^17.2.3",
     "expo": "~54.0.13",
     "expo-calendar": "^15.0.7",
+    "expo-clipboard": "^8.0.7",
     "expo-status-bar": "~3.0.8",
     "firebase": "^12.4.0",
     "lottie-react-native": "^7.3.4",

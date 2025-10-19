@@ -14,6 +14,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './index';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,9 +76,14 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     }
   };
 
-  const handleCopyCode = () => {
-    // In a real app, you'd use Clipboard.setString()
-    Alert.alert('Copied!', `Invite code ${inviteCode} copied to clipboard`);
+  const handleCopyCode = async () => {
+    try {
+      await Clipboard.setStringAsync(inviteCode);
+      Alert.alert('Copied!', `Invite code ${inviteCode} copied to clipboard`);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      Alert.alert('Error', 'Failed to copy invite code');
+    }
   };
 
   const styles = StyleSheet.create({
@@ -202,7 +208,10 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
+              alwaysBounceVertical={true}
+              scrollEventThrottle={16}
             >
               <View style={styles.content}>
                 <Text style={styles.description}>
