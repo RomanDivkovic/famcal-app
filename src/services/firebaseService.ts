@@ -568,13 +568,29 @@ class FirebaseService implements IDataService {
 
   async getTodosForUser(userId: string): Promise<Todo[]> {
     try {
+      console.info('[FirebaseService] Getting todos for user:', userId);
+
+      // Get user's groups
       const groups = await this.getGroups(userId);
       const groupIds = groups.map((g) => g.id);
+      console.info('[FirebaseService] User group IDs:', groupIds);
 
+      // Get all todos
       const allTodos = await this.getTodos();
+      console.info('[FirebaseService] Total todos in database:', allTodos.length);
 
-      return allTodos.filter((todo) => !todo.groupId || groupIds.includes(todo.groupId));
+      // Filter todos that belong to user's groups or are created by user (personal todos)
+      const userTodos = allTodos.filter(
+        (todo) =>
+          todo.createdBy === userId || // Personal todos created by user
+          (!todo.groupId && todo.createdBy === userId) || // Personal todos without group
+          (todo.groupId && groupIds.includes(todo.groupId)) // Group todos
+      );
+
+      console.info('[FirebaseService] Filtered todos for user:', userTodos.length);
+      return userTodos;
     } catch (error: any) {
+      console.error('[FirebaseService] Error getting todos for user:', error);
       throw new DataServiceError('Failed to get todos for user', error.code, error);
     }
   }
