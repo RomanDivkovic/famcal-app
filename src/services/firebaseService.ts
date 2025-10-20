@@ -534,27 +534,50 @@ class FirebaseService implements IDataService {
 
   async getTodos(groupId?: string): Promise<Todo[]> {
     try {
-      const todosRef = ref(database, 'todos');
-      const snapshot = await get(todosRef);
+      if (groupId) {
+        // Get todos for a specific group
+        const groupTodosRef = ref(database, `groups/${groupId}/todos`);
+        const snapshot = await get(groupTodosRef);
 
-      if (!snapshot.exists()) return [];
+        if (!snapshot.exists()) return [];
 
-      const todos: Todo[] = [];
-      snapshot.forEach((childSnapshot) => {
-        const todo = this.deserializeTodo(childSnapshot.val());
-        if (!groupId || todo.groupId === groupId) {
-          todos.push(todo);
-        }
-      });
+        const todos: Todo[] = [];
+        snapshot.forEach((childSnapshot) => {
+          todos.push(this.deserializeTodo(childSnapshot.val()));
+        });
 
-      return todos;
+        return todos;
+      } else {
+        // Get all todos (from top-level for personal todos)
+        const todosRef = ref(database, 'todos');
+        const snapshot = await get(todosRef);
+
+        if (!snapshot.exists()) return [];
+
+        const todos: Todo[] = [];
+        snapshot.forEach((childSnapshot) => {
+          todos.push(this.deserializeTodo(childSnapshot.val()));
+        });
+
+        return todos;
+      }
     } catch (error: any) {
       throw new DataServiceError('Failed to get todos', error.code, error);
     }
   }
 
-  async getTodoById(todoId: string): Promise<Todo | null> {
+  async getTodoById(todoId: string, groupId?: string): Promise<Todo | null> {
     try {
+      // Try group todos first if groupId is provided
+      if (groupId) {
+        const groupTodoRef = ref(database, `groups/${groupId}/todos/${todoId}`);
+        const snapshot = await get(groupTodoRef);
+        if (snapshot.exists()) {
+          return this.deserializeTodo(snapshot.val());
+        }
+      }
+
+      // Fall back to personal todos
       const todoRef = ref(database, `todos/${todoId}`);
       const snapshot = await get(todoRef);
 
@@ -575,20 +598,36 @@ class FirebaseService implements IDataService {
       const groupIds = groups.map((g) => g.id);
       console.info('[FirebaseService] User group IDs:', groupIds);
 
-      // Get all todos
-      const allTodos = await this.getTodos();
-      console.info('[FirebaseService] Total todos in database:', allTodos.length);
+      const allTodos: Todo[] = [];
 
-      // Filter todos that belong to user's groups or are created by user (personal todos)
-      const userTodos = allTodos.filter(
-        (todo) =>
-          todo.createdBy === userId || // Personal todos created by user
-          (!todo.groupId && todo.createdBy === userId) || // Personal todos without group
-          (todo.groupId && groupIds.includes(todo.groupId)) // Group todos
-      );
+      // Get todos from each group
+      for (const groupId of groupIds) {
+        const groupTodosRef = ref(database, `groups/${groupId}/todos`);
+        const snapshot = await get(groupTodosRef);
 
-      console.info('[FirebaseService] Filtered todos for user:', userTodos.length);
-      return userTodos;
+        if (snapshot.exists()) {
+          snapshot.forEach((childSnapshot) => {
+            allTodos.push(this.deserializeTodo(childSnapshot.val()));
+          });
+        }
+      }
+
+      // Get personal todos (not in any group)
+      const personalTodosRef = ref(database, 'todos');
+      const personalSnapshot = await get(personalTodosRef);
+
+      if (personalSnapshot.exists()) {
+        personalSnapshot.forEach((childSnapshot) => {
+          const todo = this.deserializeTodo(childSnapshot.val());
+          // Only include personal todos created by this user
+          if (todo.createdBy === userId && !todo.groupId) {
+            allTodos.push(todo);
+          }
+        });
+      }
+
+      console.info('[FirebaseService] Total todos for user:', allTodos.length);
+      return allTodos;
     } catch (error: any) {
       console.error('[FirebaseService] Error getting todos for user:', error);
       throw new DataServiceError('Failed to get todos for user', error.code, error);
@@ -597,7 +636,16 @@ class FirebaseService implements IDataService {
 
   async createTodo(todo: Omit<Todo, 'id'>): Promise<Todo> {
     try {
-      const todosRef = ref(database, 'todos');
+      let todosRef;
+
+      // If todo belongs to a group, save it under the group
+      if (todo.groupId) {
+        todosRef = ref(database, `groups/${todo.groupId}/todos`);
+      } else {
+        // Otherwise, save it as a personal todo at top level
+        todosRef = ref(database, 'todos');
+      }
+
       const newTodoRef = push(todosRef);
 
       const newTodo: Todo = {
@@ -614,25 +662,41 @@ class FirebaseService implements IDataService {
 
   async updateTodo(todoId: string, updates: Partial<Todo>): Promise<void> {
     try {
-      const todoRef = ref(database, `todos/${todoId}`);
+      // We need to find where the todo is stored
+      // First try to get the todo to find its location
+      const todo = updates.groupId
+        ? await this.getTodoById(todoId, updates.groupId)
+        : await this.getTodoById(todoId);
+
+      if (!todo) {
+        throw new DataServiceError('Todo not found');
+      }
+
+      const todoRef = todo.groupId
+        ? ref(database, `groups/${todo.groupId}/todos/${todoId}`)
+        : ref(database, `todos/${todoId}`);
+
       await update(todoRef, this.serializeTodo(updates as any));
     } catch (error: any) {
       throw new DataServiceError('Failed to update todo', error.code, error);
     }
   }
 
-  async deleteTodo(todoId: string): Promise<void> {
+  async deleteTodo(todoId: string, groupId?: string): Promise<void> {
     try {
-      const todoRef = ref(database, `todos/${todoId}`);
+      const todoRef = groupId
+        ? ref(database, `groups/${groupId}/todos/${todoId}`)
+        : ref(database, `todos/${todoId}`);
+
       await remove(todoRef);
     } catch (error: any) {
       throw new DataServiceError('Failed to delete todo', error.code, error);
     }
   }
 
-  async toggleTodoComplete(todoId: string): Promise<void> {
+  async toggleTodoComplete(todoId: string, groupId?: string): Promise<void> {
     try {
-      const todo = await this.getTodoById(todoId);
+      const todo = await this.getTodoById(todoId, groupId);
 
       if (!todo) {
         throw new DataServiceError('Todo not found');
