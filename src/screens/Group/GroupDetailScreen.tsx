@@ -3,12 +3,12 @@
  * Displays details of a group and its members
  */
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Card, Header, Button, LoadingOverlay, InviteModal } from '../../components';
+import { Card, Header, Button, LoadingOverlay, InviteBottomSheet } from '../../components';
 import { RootStackParamList, Group } from '../../types';
 import { dataService } from '../../services';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,20 +24,16 @@ interface Props {
 
 export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  useAuth();
   const { groupId } = route.params;
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<
     Array<{ id: string; displayName: string; email: string; role: string }>
   >([]);
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
 
-  useEffect(() => {
-    loadGroupData();
-  }, [groupId]);
-
-  const loadGroupData = async () => {
+  const loadGroupData = useCallback(async () => {
     try {
       setLoading(true);
       const groupData = await dataService.getGroupById(groupId);
@@ -91,7 +87,11 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId]);
+
+  useEffect(() => {
+    loadGroupData();
+  }, [loadGroupData]);
 
   const handleLeaveGroup = () => {
     Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
@@ -266,7 +266,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Button
             title="Invite Members"
-            onPress={() => setShowInviteModal(true)}
+            onPress={() => setInviteModalVisible(true)}
             icon={<Ionicons name="person-add" size={20} color="#ffffff" />}
             fullWidth
             style={styles.button}
@@ -281,11 +281,13 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      <InviteModal
-        visible={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
+      {/* Invite Bottom Sheet */}
+      <InviteBottomSheet
+        isVisible={inviteModalVisible}
+        onClose={() => setInviteModalVisible(false)}
         groupId={groupId}
         groupName={group?.name || 'Group'}
+        onInviteCreated={() => {}}
       />
     </View>
   );
