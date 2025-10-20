@@ -68,7 +68,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   // Show error modal for sign in errors
   React.useEffect(() => {
     if (error) {
-      const message = error.message || 'An error occurred during sign in';
+      // Extract clean error message (remove "DataServiceError:" prefix if present)
+      let message = error.message || 'An error occurred during sign in';
+      if (message.includes('DataServiceError:')) {
+        message = message.split('DataServiceError:')[1].trim();
+      }
       console.info('Showing error modal:', message);
       setErrorMessage(message);
       setErrorModalVisible(true);
@@ -78,7 +82,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   // Show error modal for Google sign in errors
   React.useEffect(() => {
     if (googleError) {
-      const message = googleError.message || 'An error occurred during Google sign in';
+      // Extract clean error message (remove "DataServiceError:" prefix if present)
+      let message = googleError.message || 'An error occurred during Google sign in';
+      if (message.includes('DataServiceError:')) {
+        message = message.split('DataServiceError:')[1].trim();
+      }
       console.info('Showing Google error modal:', message);
       setErrorMessage(message);
       setErrorModalVisible(true);

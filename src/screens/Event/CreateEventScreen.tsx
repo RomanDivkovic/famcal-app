@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, Button, Input, LoadingOverlay, DateTimePickerModal } from '../../components';
+import { Header, Button, Input, LoadingOverlay, DateTimePickerBottomSheet } from '../../components';
 import { RootStackParamList } from '../../types';
 import { dataService } from '../../services';
 import { Ionicons } from '@expo/vector-icons';
@@ -216,11 +216,11 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      <DateTimePickerModal
+      <DateTimePickerBottomSheet
         visible={showStartPicker}
         onClose={() => setShowStartPicker(false)}
         value={startDate}
-        onChange={(selectedDate) => {
+        onChange={(selectedDate: Date) => {
           setStartDate(selectedDate);
           // Auto-adjust end date if it's before start date
           if (selectedDate > endDate) {
@@ -231,11 +231,11 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         title="Välj Starttid"
       />
 
-      <DateTimePickerModal
+      <DateTimePickerBottomSheet
         visible={showEndPicker}
         onClose={() => setShowEndPicker(false)}
         value={endDate}
-        onChange={(selectedDate) => {
+        onChange={(selectedDate: Date) => {
           setEndDate(selectedDate);
         }}
         mode="datetime"

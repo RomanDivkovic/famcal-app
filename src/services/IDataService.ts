@@ -39,12 +39,12 @@ export interface IDataService {
 
   // Todos
   getTodos(groupId?: string): Promise<Todo[]>;
-  getTodoById(todoId: string): Promise<Todo | null>;
+  getTodoById(todoId: string, groupId?: string): Promise<Todo | null>;
   getTodosForUser(userId: string): Promise<Todo[]>;
   createTodo(todo: Omit<Todo, 'id'>): Promise<Todo>;
   updateTodo(todoId: string, updates: Partial<Todo>): Promise<void>;
-  deleteTodo(todoId: string): Promise<void>;
-  toggleTodoComplete(todoId: string): Promise<void>;
+  deleteTodo(todoId: string, groupId?: string): Promise<void>;
+  toggleTodoComplete(todoId: string, groupId?: string): Promise<void>;
 
   // Invitations
   createInvitation(groupId: string, email: string, invitedBy: string): Promise<Invitation>;
