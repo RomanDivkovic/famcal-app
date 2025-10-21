@@ -26,7 +26,7 @@ interface Props {
   navigation: CreateGroupScreenNavigationProp;
 }
 
-export const CreateGroupScreen: React.FC<Props> = ({ navigation }) => {
+export const CreateGroupScreen = ({ navigation }: Props) => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const [groupName, setGroupName] = useState('');

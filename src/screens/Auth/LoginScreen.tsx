@@ -2,12 +2,20 @@
  * Login Screen
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button, Input, LoadingOverlay, ErrorModal } from '../../components';
+import { Button, Input, LoadingOverlay } from '../../components';
 import { useForm, useAsync } from '../../hooks';
 import { AuthStackParamList } from '../../types';
 
@@ -17,11 +25,9 @@ interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+export const LoginScreen = ({ navigation }: Props) => {
   const { theme } = useTheme();
   const { signIn, signInWithGoogle } = useAuth();
-  const [errorModalVisible, setErrorModalVisible] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState('');
 
   // Form validation
   const { values, errors, touched, handleChange, handleBlur, validateAll } = useForm(
@@ -65,40 +71,51 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     await signInWithGoogle();
   });
 
-  // Show error modal for sign in errors
-  React.useEffect(() => {
-    if (error) {
-      // Extract clean error message (remove "DataServiceError:" prefix if present)
-      let message = error.message || 'An error occurred during sign in';
-      if (message.includes('DataServiceError:')) {
-        message = message.split('DataServiceError:')[1].trim();
-      }
-      console.info('Showing error modal:', message);
-      setErrorMessage(message);
-      setErrorModalVisible(true);
-    }
-  }, [error]);
-
-  // Show error modal for Google sign in errors
-  React.useEffect(() => {
+  // Show error alert for Google sign in errors
+  useEffect(() => {
     if (googleError) {
+      console.info('LoginScreen: Google error detected:', googleError);
       // Extract clean error message (remove "DataServiceError:" prefix if present)
       let message = googleError.message || 'An error occurred during Google sign in';
       if (message.includes('DataServiceError:')) {
         message = message.split('DataServiceError:')[1].trim();
       }
-      console.info('Showing Google error modal:', message);
-      setErrorMessage(message);
-      setErrorModalVisible(true);
+      console.info('LoginScreen: Showing Google error alert with message:', message);
+      Alert.alert('Sign In Failed', message, [
+        {
+          text: 'OK',
+          onPress: () => {
+            resetGoogleSignIn();
+          },
+        },
+      ]);
     }
-  }, [googleError]);
+  }, [googleError, resetGoogleSignIn]);
 
-  const handleCloseErrorModal = () => {
-    setErrorModalVisible(false);
-    setErrorMessage('');
-    // Reset the async hook error states so they can trigger again
-    resetSignIn();
-    resetGoogleSignIn();
+  const handleSignIn = async () => {
+    await executeSignIn().catch((error) => {
+      console.info('LoginScreen: Error detected:', error);
+      // Extract clean error message (remove "DataServiceError:" prefix if present)
+      let message = error.message || 'An error occurred during sign in';
+      if (message.includes('DataServiceError:')) {
+        message = message.split('DataServiceError:')[1].trim();
+      }
+      console.info('LoginScreen: Showing error alert with message:', message);
+      Alert.alert('Sign In Failed', message, [
+        {
+          text: 'OK',
+          onPress: () => {
+            resetSignIn();
+          },
+        },
+      ]);
+    });
+  };
+
+  const handleGoogleSignIn = async () => {
+    await executeGoogleSignIn().catch(() => {
+      // Error is already handled in useAsync and the effect
+    });
   };
 
   const isLoading = loading || googleLoading;
@@ -203,7 +220,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         <Button
           title="Sign In"
-          onPress={executeSignIn}
+          onPress={handleSignIn}
           loading={loading}
           disabled={isLoading}
           fullWidth
@@ -218,7 +235,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         <Button
           title="Sign in with Google"
-          onPress={executeGoogleSignIn}
+          onPress={handleGoogleSignIn}
           variant="outline"
           disabled={isLoading}
           fullWidth
@@ -234,11 +251,6 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <LoadingOverlay visible={isLoading} />
-      <ErrorModal
-        visible={errorModalVisible}
-        message={errorMessage}
-        onClose={handleCloseErrorModal}
-      />
     </KeyboardAvoidingView>
   );
 };

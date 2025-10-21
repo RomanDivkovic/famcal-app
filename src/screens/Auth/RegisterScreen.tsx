@@ -11,11 +11,12 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Button, Input, LoadingOverlay, ErrorModal, TermsOfServiceModal } from '../../components';
+import { Button, Input, LoadingOverlay, TermsOfServiceModal } from '../../components';
 import { useForm, useAsync } from '../../hooks';
 import { AuthStackParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,11 +27,9 @@ interface Props {
   navigation: RegisterScreenNavigationProp;
 }
 
-export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+export const RegisterScreen = ({ navigation }: Props) => {
   const { signUp } = useAuth();
   const { theme } = useTheme();
-  const [errorModalVisible, setErrorModalVisible] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState('');
   const [acceptedTerms, setAcceptedTerms] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
 
@@ -83,21 +82,21 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     await signUp(values.email, values.password, values.displayName);
   });
 
-  // Show error modal
-  React.useEffect(() => {
-    if (error) {
-      const message = error.message || 'An error occurred during registration';
-      console.info('Showing error modal:', message);
-      setErrorMessage(message);
-      setErrorModalVisible(true);
-    }
-  }, [error]);
-
-  const handleCloseErrorModal = () => {
-    setErrorModalVisible(false);
-    setErrorMessage('');
-    // Reset the async hook error state so it can trigger again
-    resetSignUp();
+  const handleSignUp = async () => {
+    await executeSignUp().catch(() => {
+      if (error) {
+        const message = error.message || 'An error occurred during registration';
+        console.info('Showing error alert:', message);
+        Alert.alert('Registration Failed', message, [
+          {
+            text: 'OK',
+            onPress: () => {
+              resetSignUp();
+            },
+          },
+        ]);
+      }
+    });
   };
 
   const styles = StyleSheet.create({
@@ -257,7 +256,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         <Button
           title="Sign Up"
-          onPress={executeSignUp}
+          onPress={handleSignUp}
           loading={loading}
           disabled={loading}
           fullWidth
@@ -273,11 +272,6 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <LoadingOverlay visible={loading} />
-      <ErrorModal
-        visible={errorModalVisible}
-        message={errorMessage}
-        onClose={handleCloseErrorModal}
-      />
       <TermsOfServiceModal
         visible={showTerms}
         onClose={() => setShowTerms(false)}

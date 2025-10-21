@@ -29,3 +29,6 @@ export const dataService = getDataService();
 
 // Also export the services individually if needed
 export { firebaseService, apiService };
+
+// Export notification service
+export { notificationService } from './notificationService';

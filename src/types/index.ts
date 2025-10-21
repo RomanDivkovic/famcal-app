@@ -14,11 +14,12 @@ export interface Group {
   id: string;
   name: string;
   description?: string;
-  members: string[]; // Array of user IDs
+  members: { [userId: string]: boolean }; // Object of user IDs to true
   createdBy: string; // User ID
   createdAt: Date;
   color?: string; // Color for visual identification
   inviteCode?: string; // Code for joining the group
+  inviteCodeCreatedAt?: Date; // Timestamp when invite code was created
 }
 
 export interface Event {

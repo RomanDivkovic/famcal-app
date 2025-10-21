@@ -24,13 +24,13 @@ interface InviteBottomSheetProps {
   onInviteCreated?: (inviteCode: string) => void;
 }
 
-export const InviteBottomSheet: React.FC<InviteBottomSheetProps> = ({
+export const InviteBottomSheet = ({
   isVisible,
   onClose,
   groupId,
   groupName,
   onInviteCreated,
-}) => {
+}: InviteBottomSheetProps) => {
   const { theme } = useTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [inviteCode, setInviteCode] = useState('');

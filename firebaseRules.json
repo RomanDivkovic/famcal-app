@@ -1,0 +1,52 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "personal-events": {
+          "$eventId": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "personal-todos": {
+          "$todoId": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    },
+    "groups": {
+      "$groupId": {
+        ".read": "data.child('members').child(auth.uid).exists()",
+        ".write": "auth != null && ((!data.exists() && newData.child('createdBy').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) || (data.exists() && data.child('members').child(auth.uid).exists()))",
+        "events": {
+          "$eventId": {
+            ".read": "root.child('groups').child($groupId).child('members').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('groups').child($groupId).child('members').child(auth.uid).exists()"
+          }
+        },
+        "todos": {
+          "$todoId": {
+            ".read": "root.child('groups').child($groupId).child('members').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('groups').child($groupId).child('members').child(auth.uid).exists()"
+          }
+        }
+      }
+    },
+    "user-groups": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "invitations": {
+      "$invitationId": {
+        ".read": "auth != null && data.child('invitedEmail').val() === auth.token.email",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

@@ -29,6 +29,7 @@ export default {
     },
     package: 'com.groupcalendar.app',
     permissions: ['READ_CALENDAR', 'WRITE_CALENDAR'],
+    useNextNotificationsApi: true,
   },
   web: {
     favicon: './assets/famcal.png',
@@ -43,6 +44,15 @@ export default {
       'expo-calendar',
       {
         calendarPermission: 'The app needs to access your calendar to sync events.',
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/famcal.png',
+        color: '#1a3a52',
+        sounds: ['./assets/notification.wav'],
+        mode: 'production',
       },
     ],
   ],

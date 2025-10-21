@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGroups, useNotifications } from '../../hooks';
 import { Header, Button, Input, LoadingOverlay, DateTimePickerModal } from '../../components';
 import { RootStackParamList } from '../../types';
 import { dataService } from '../../services';
@@ -23,15 +24,21 @@ interface Props {
   route: CreateEventScreenRouteProp;
 }
 
-export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
+export const CreateEventScreen = ({ navigation, route }: Props) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { groupId, date } = route.params || {};
+  const { date } = route.params || {};
+  const { groups } = useGroups(user?.id);
+  const { scheduleEventNotification } = useNotifications();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState(date || new Date());
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 60 * 60 * 1000)); // 1 hour later
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(route.params?.groupId);
+
+  // Use date from params if available, otherwise default to now
+  const initialDate = date || new Date();
+  const [startDate, setStartDate] = useState(initialDate);
+  const [endDate, setEndDate] = useState(new Date(initialDate.getTime() + 60 * 60 * 1000)); // 1 hour later
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,8 +71,8 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       };
 
       // Only add groupId if it exists (Firebase doesn't allow undefined values)
-      if (groupId) {
-        eventData.groupId = groupId;
+      if (selectedGroupId) {
+        eventData.groupId = selectedGroupId;
       }
 
       console.info('Creating event with data:', {
@@ -75,7 +82,23 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       });
 
       const createdEvent = await dataService.createEvent(eventData);
-      console.info('Event created successfully:', createdEvent); // Try to sync to native calendar
+      console.info('Event created successfully:', createdEvent);
+
+      // Schedule notification for 15 minutes before event
+      try {
+        await scheduleEventNotification(
+          createdEvent.id,
+          createdEvent.title,
+          startDateTime,
+          15 // 15 minutes before
+        );
+        console.info('Event notification scheduled');
+      } catch (notifError) {
+        console.error('Failed to schedule notification:', notifError);
+        // Don't fail event creation if notification fails
+      }
+
+      // Try to sync to native calendar
       try {
         const { status } = await Calendar.getCalendarPermissionsAsync();
         console.info('Calendar permission status:', status);
@@ -152,6 +175,10 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
       marginTop: theme.spacing.xl,
       gap: theme.spacing.md,
     },
+    selectedButton: {
+      borderColor: theme.colors.primary,
+      borderWidth: 2,
+    },
   });
 
   return (
@@ -192,11 +219,43 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {groupId && (
-          <Text style={[styles.dateLabel, { marginTop: theme.spacing.md }]}>
-            Creating for Group
-          </Text>
-        )}
+        <View>
+          <Text style={styles.dateLabel}>Event Type</Text>
+          <TouchableOpacity
+            style={[styles.dateButton, !selectedGroupId && styles.selectedButton]}
+            onPress={() => setSelectedGroupId(undefined)}
+          >
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color={theme.colors.text}
+              style={{ marginRight: theme.spacing.sm }}
+            />
+            <Text style={styles.dateText}>Personal Event</Text>
+            {!selectedGroupId && (
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            )}
+          </TouchableOpacity>
+
+          {groups.map((group) => (
+            <TouchableOpacity
+              key={group.id}
+              style={[styles.dateButton, selectedGroupId === group.id && styles.selectedButton]}
+              onPress={() => setSelectedGroupId(group.id)}
+            >
+              <Ionicons
+                name="people-outline"
+                size={20}
+                color={theme.colors.text}
+                style={{ marginRight: theme.spacing.sm }}
+              />
+              <Text style={styles.dateText}>{group.name}</Text>
+              {selectedGroupId === group.id && (
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={styles.buttonContainer}>
           <Button
@@ -220,7 +279,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         visible={showStartPicker}
         onClose={() => setShowStartPicker(false)}
         value={startDate}
-        onChange={(selectedDate) => {
+        onChange={(selectedDate: Date) => {
           setStartDate(selectedDate);
           // Auto-adjust end date if it's before start date
           if (selectedDate > endDate) {
@@ -235,7 +294,7 @@ export const CreateEventScreen: React.FC<Props> = ({ navigation, route }) => {
         visible={showEndPicker}
         onClose={() => setShowEndPicker(false)}
         value={endDate}
-        onChange={(selectedDate) => {
+        onChange={(selectedDate: Date) => {
           setEndDate(selectedDate);
         }}
         mode="datetime"

@@ -6,19 +6,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, TodoItem } from '../../components';
+import { Header, TodoItem, Button, JoinGroupModal } from '../../components';
 import { dataService } from '../../services';
 import { Todo } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
+import { useGroups } from '../../hooks';
 
 export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups(user?.id);
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   useEffect(() => {
     loadTodos();
@@ -186,6 +189,52 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Text style={styles.emptyText}>Create a todo to start tracking your tasks</Text>
     </View>
   );
+
+  // Show join/create group screen if user has no groups
+  if (!groupsLoading && groups.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Header title="Todos" />
+        <View style={[styles.content, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+          <Ionicons
+            name="people-outline"
+            size={80}
+            color={theme.colors.textSecondary}
+            style={styles.emptyIcon}
+          />
+          <Text style={styles.emptyTitle}>No Group Yet</Text>
+          <Text style={styles.emptyText}>
+            You need to create or join a group to see todos and manage tasks
+          </Text>
+          <View
+            style={{ flexDirection: 'row', gap: theme.spacing.md, marginTop: theme.spacing.lg }}
+          >
+            <Button
+              title="Create Group"
+              onPress={() => {
+                navigation.navigate('CreateGroup' as never);
+              }}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Join Group"
+              variant="outline"
+              onPress={() => setShowJoinModal(true)}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </View>
+        <JoinGroupModal
+          visible={showJoinModal}
+          onClose={() => setShowJoinModal(false)}
+          onSuccess={() => {
+            refreshGroups();
+            setShowJoinModal(false);
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

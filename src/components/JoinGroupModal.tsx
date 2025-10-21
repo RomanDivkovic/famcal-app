@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../hooks';
 import { Input, Button } from './index';
 import { Ionicons } from '@expo/vector-icons';
 import { dataService } from '../services';
@@ -28,6 +29,7 @@ interface JoinGroupModalProps {
 export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose, onSuccess }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { sendGroupInviteNotification } = useNotifications();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,8 +65,8 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
         return;
       }
 
-      // Check if user is already a member
-      if (group.members.includes(user.id)) {
+      // Check if user is already a member (members is now an object)
+      if (group.members && group.members[user.id]) {
         Alert.alert('Already a Member', `You are already a member of ${group.name}`);
         setInviteCode('');
         onClose();
@@ -73,6 +75,18 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
 
       // Join the group
       await dataService.joinGroup(group.id, user.id, codeUpper);
+
+      // Send notification to user
+      try {
+        await sendGroupInviteNotification(
+          group.name,
+          'You' // Since it's the user joining, we say "You"
+        );
+        console.info('Group join notification sent');
+      } catch (notifError) {
+        console.error('Failed to send notification:', notifError);
+        // Don't fail join if notification fails
+      }
 
       Alert.alert('Success!', `You have joined ${group.name}`, [
         {

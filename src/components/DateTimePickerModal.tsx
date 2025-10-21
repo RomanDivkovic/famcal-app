@@ -20,7 +20,7 @@ interface DateTimePickerModalProps {
   title?: string;
 }
 
-export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({
+export const DateTimePickerModal = ({
   visible,
   onClose,
   value,
@@ -28,7 +28,7 @@ export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({
   mode = 'datetime',
   minimumDate,
   title = 'Select Date & Time',
-}) => {
+}: DateTimePickerModalProps) => {
   const { theme } = useTheme();
   const [tempDate, setTempDate] = useState(value);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>(
