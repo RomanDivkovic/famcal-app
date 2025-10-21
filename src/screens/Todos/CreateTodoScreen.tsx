@@ -9,10 +9,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, Button, Input, LoadingOverlay } from '../../components';
+import { useGroups, useNotifications } from '../../hooks';
+import { Header, Button, Input, LoadingOverlay, DateTimePickerModal } from '../../components';
 import { RootStackParamList } from '../../types';
 import { dataService } from '../../services';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 type CreateTodoScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateTodo'>;
@@ -26,10 +26,12 @@ interface Props {
 export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { groupId } = route.params || {};
+  const { groups } = useGroups(user?.id);
+  const { scheduleTodoNotification } = useNotifications();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(route.params?.groupId);
   const [dueDate, setDueDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,14 +61,30 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
       };
 
       // Only add groupId if it exists
-      if (groupId) {
-        todoData.groupId = groupId;
+      if (selectedGroupId) {
+        todoData.groupId = selectedGroupId;
       }
 
       console.info('Creating todo with data:', todoData);
 
-      await dataService.createTodo(todoData);
-      console.info('Todo created successfully');
+      const createdTodo = await dataService.createTodo(todoData);
+      console.info('Todo created successfully:', createdTodo);
+
+      // Schedule notification for 2 hours before due date
+      if (dueDate) {
+        try {
+          await scheduleTodoNotification(
+            createdTodo.id,
+            title.trim(),
+            new Date(dueDate),
+            2 // 2 hours before
+          );
+          console.info('Todo notification scheduled');
+        } catch (notifError) {
+          console.error('Failed to schedule notification:', notifError);
+          // Don't fail todo creation if notification fails
+        }
+      }
 
       Alert.alert('Success', 'Todo created successfully', [
         {
@@ -124,6 +142,10 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
       marginTop: theme.spacing.xl,
       gap: theme.spacing.md,
     },
+    selectedButton: {
+      borderColor: theme.colors.primary,
+      borderWidth: 2,
+    },
   });
 
   return (
@@ -156,11 +178,43 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {groupId && (
-          <Text style={[styles.dateLabel, { marginTop: theme.spacing.md }]}>
-            Creating for Group
-          </Text>
-        )}
+        <View>
+          <Text style={styles.dateLabel}>Todo Type</Text>
+          <TouchableOpacity
+            style={[styles.dateButton, !selectedGroupId && styles.selectedButton]}
+            onPress={() => setSelectedGroupId(undefined)}
+          >
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color={theme.colors.text}
+              style={{ marginRight: theme.spacing.sm }}
+            />
+            <Text style={styles.dateText}>Personal Todo</Text>
+            {!selectedGroupId && (
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            )}
+          </TouchableOpacity>
+
+          {groups.map((group) => (
+            <TouchableOpacity
+              key={group.id}
+              style={[styles.dateButton, selectedGroupId === group.id && styles.selectedButton]}
+              onPress={() => setSelectedGroupId(group.id)}
+            >
+              <Ionicons
+                name="people-outline"
+                size={20}
+                color={theme.colors.text}
+                style={{ marginRight: theme.spacing.sm }}
+              />
+              <Text style={styles.dateText}>{group.name}</Text>
+              {selectedGroupId === group.id && (
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={styles.buttonContainer}>
           <Button
@@ -180,20 +234,16 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={dueDate}
-          mode="datetime"
-          display="default"
-          themeVariant={theme.isDark ? 'dark' : 'light'}
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (event.type === 'set' && selectedDate) {
-              setDueDate(selectedDate);
-            }
-          }}
-        />
-      )}
+      <DateTimePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        value={dueDate}
+        onChange={(selectedDate: Date) => {
+          setDueDate(selectedDate);
+        }}
+        mode="datetime"
+        title="Select Due Date"
+      />
 
       <LoadingOverlay visible={loading} />
     </View>

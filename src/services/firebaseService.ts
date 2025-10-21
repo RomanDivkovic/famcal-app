@@ -218,9 +218,8 @@ class FirebaseService implements IDataService {
         const updates: { [key: string]: any } = {};
         groupsSnapshot.forEach((childSnapshot) => {
           const group = childSnapshot.val();
-          if (group.members && group.members.includes(userId)) {
-            const newMembers = group.members.filter((id: string) => id !== userId);
-            updates[`groups/${childSnapshot.key}/members`] = newMembers;
+          if (group.members && group.members[userId]) {
+            updates[`groups/${childSnapshot.key}/members/${userId}`] = null;
           }
         });
         if (Object.keys(updates).length > 0) {
@@ -242,22 +241,18 @@ class FirebaseService implements IDataService {
 
   async getGroups(userId: string): Promise<Group[]> {
     try {
-      const groupsRef = ref(database, 'groups');
-      const snapshot = await get(groupsRef);
+      const userGroupsRef = ref(database, `user-groups/${userId}`);
+      const snapshot = await get(userGroupsRef);
 
       if (!snapshot.exists()) return [];
 
-      const groups: Group[] = [];
-      snapshot.forEach((childSnapshot) => {
-        const group = this.deserializeGroup(childSnapshot.val());
-        if (group.members.includes(userId)) {
-          groups.push(group);
-        }
-      });
+      const groupIds = Object.keys(snapshot.val());
+      const groupPromises = groupIds.map((groupId) => this.getGroupById(groupId));
+      const groups = (await Promise.all(groupPromises)).filter((g): g is Group => g !== null);
 
       return groups;
     } catch (error: any) {
-      throw new DataServiceError('Failed to get groups', error.code, error);
+      throw new DataServiceError('Failed to get groups', (error as any).code, error);
     }
   }
 
@@ -300,21 +295,41 @@ class FirebaseService implements IDataService {
     try {
       const groupsRef = ref(database, 'groups');
       const newGroupRef = push(groupsRef);
+      const groupId = newGroupRef.key!;
 
       const group: Group = {
-        id: newGroupRef.key!,
+        id: groupId,
         name,
         description,
-        members: [userId],
+        members: { [userId]: true },
         createdBy: userId,
         createdAt: new Date(),
         inviteCode: this.generateRandomCode(),
       };
 
-      await set(newGroupRef, this.serializeGroup(group));
+      console.log('[FirebaseService] Creating group:', group);
+      console.log('[FirebaseService] User ID:', userId);
+
+      // Use a multi-path update to write to groups and user-groups atomically
+      const updates: { [key: string]: any } = {};
+      updates[`/groups/${groupId}`] = this.serializeGroup(group);
+      updates[`/user-groups/${userId}/${groupId}`] = true;
+
+      console.log('[FirebaseService] Updates to apply:', JSON.stringify(updates, null, 2));
+
+      await update(ref(database), updates);
+
+      console.log('[FirebaseService] Group created successfully');
       return group;
     } catch (error: any) {
-      throw new DataServiceError('Failed to create group', error.code, error);
+      console.error('[FirebaseService] Create group error:', error);
+      console.error('[FirebaseService] Error code:', error?.code);
+      console.error('[FirebaseService] Error message:', error?.message);
+      throw new DataServiceError(
+        `Failed to create group: ${error?.message || 'Unknown error'}`,
+        (error as any).code,
+        error
+      );
     }
   }
 
@@ -322,8 +337,8 @@ class FirebaseService implements IDataService {
     try {
       const groupRef = ref(database, `groups/${groupId}`);
       await update(groupRef, updates);
-    } catch (error: any) {
-      throw new DataServiceError('Failed to update group', error.code, error);
+    } catch (error: unknown) {
+      throw new DataServiceError('Failed to update group', (error as any).code, error);
     }
   }
 
@@ -351,16 +366,31 @@ class FirebaseService implements IDataService {
         throw new DataServiceError('Group not found');
       }
 
-      if (inviteCode && group.inviteCode !== inviteCode) {
-        throw new DataServiceError('Invalid invite code');
+      if (inviteCode) {
+        if (group.inviteCode !== inviteCode) {
+          throw new DataServiceError('Invalid invite code');
+        }
+
+        // Check if invite code has expired (7 days)
+        if (group.inviteCodeCreatedAt) {
+          const expirationTime = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+          const codeAge = Date.now() - new Date(group.inviteCodeCreatedAt).getTime();
+
+          if (codeAge > expirationTime) {
+            throw new DataServiceError('Invite code has expired. Please request a new one.');
+          }
+        }
       }
 
-      if (!group.members.includes(userId)) {
-        group.members.push(userId);
-        await this.updateGroup(groupId, { members: group.members });
+      if (!group.members[userId]) {
+        // Use a multi-path update to add user to group and user-groups index
+        const updates: { [key: string]: any } = {};
+        updates[`/groups/${groupId}/members/${userId}`] = true;
+        updates[`/user-groups/${userId}/${groupId}`] = true;
+        await update(ref(database), updates);
       }
     } catch (error: any) {
-      throw new DataServiceError('Failed to join group', error.code, error);
+      throw new DataServiceError('Failed to join group', (error as any).code, error);
     }
   }
 
@@ -372,23 +402,31 @@ class FirebaseService implements IDataService {
         throw new DataServiceError('Group not found');
       }
 
-      const updatedMembers = group.members.filter((id) => id !== userId);
+      // Use a multi-path update to remove user from group and user-groups index
+      const updates: { [key: string]: any } = {};
+      updates[`/groups/${groupId}/members/${userId}`] = null;
+      updates[`/user-groups/${userId}/${groupId}`] = null;
+      await update(ref(database), updates);
 
-      // If no members left, delete the group
-      if (updatedMembers.length === 0) {
+      // Check if group is now empty
+      const remainingMembersRef = ref(database, `groups/${groupId}/members`);
+      const snapshot = await get(remainingMembersRef);
+      if (!snapshot.exists() || !snapshot.hasChildren()) {
         await this.deleteGroup(groupId);
-      } else {
-        await this.updateGroup(groupId, { members: updatedMembers });
       }
     } catch (error: any) {
-      throw new DataServiceError('Failed to leave group', error.code, error);
+      throw new DataServiceError('Failed to leave group', (error as any).code, error);
     }
   }
 
   async generateInviteCode(groupId: string): Promise<string> {
     try {
       const code = this.generateRandomCode();
-      await this.updateGroup(groupId, { inviteCode: code });
+      // Store both the code and when it was created for expiration validation
+      await this.updateGroup(groupId, {
+        inviteCode: code,
+        inviteCodeCreatedAt: new Date(),
+      });
       return code;
     } catch (error: any) {
       throw new DataServiceError('Failed to generate invite code', error.code, error);
@@ -435,22 +473,33 @@ class FirebaseService implements IDataService {
     try {
       console.info('[FirebaseService] Getting events for user:', userId);
 
-      // Get user's groups
+      const userEvents: Event[] = [];
+
+      // 1. Get personal events from /users/{userId}/personal-events
+      const personalEventsRef = ref(database, `users/${userId}/personal-events`);
+      const personalSnapshot = await get(personalEventsRef);
+
+      if (personalSnapshot.exists()) {
+        personalSnapshot.forEach((childSnapshot) => {
+          userEvents.push(this.deserializeEvent(childSnapshot.val()));
+        });
+      }
+
+      // 2. Get group events from /groups/{groupId}/events for each group
       const groups = await this.getGroups(userId);
       const groupIds = groups.map((g) => g.id);
       console.info('[FirebaseService] User group IDs:', groupIds);
 
-      // Get all events
-      const allEvents = await this.getEvents();
-      console.info('[FirebaseService] Total events in database:', allEvents.length);
+      for (const groupId of groupIds) {
+        const groupEventsRef = ref(database, `groups/${groupId}/events`);
+        const snapshot = await get(groupEventsRef);
 
-      // Filter events that belong to user's groups or are created by user (personal events)
-      const userEvents = allEvents.filter(
-        (event) =>
-          event.createdBy === userId || // Personal events created by user
-          (!event.groupId && event.createdBy === userId) || // Personal events without group
-          (event.groupId && groupIds.includes(event.groupId)) // Group events
-      );
+        if (snapshot.exists()) {
+          snapshot.forEach((childSnapshot) => {
+            userEvents.push(this.deserializeEvent(childSnapshot.val()));
+          });
+        }
+      }
 
       console.info('[FirebaseService] Filtered events for user:', userEvents.length);
       return userEvents;
@@ -483,7 +532,19 @@ class FirebaseService implements IDataService {
     try {
       console.info('[FirebaseService] Creating event:', event);
 
-      const eventsRef = ref(database, 'events');
+      let eventsRef;
+      let eventPath;
+
+      // If event has no groupId, it's a personal event - store under user
+      if (!event.groupId) {
+        eventsRef = ref(database, `users/${event.createdBy}/personal-events`);
+        eventPath = `users/${event.createdBy}/personal-events`;
+      } else {
+        // Group event - store under the group
+        eventsRef = ref(database, `groups/${event.groupId}/events`);
+        eventPath = `groups/${event.groupId}/events`;
+      }
+
       const newEventRef = push(eventsRef);
 
       if (!newEventRef.key) {
@@ -497,6 +558,7 @@ class FirebaseService implements IDataService {
 
       const serialized = this.serializeEvent(newEvent);
       console.info('[FirebaseService] Serialized event:', serialized);
+      console.info('[FirebaseService] Saving to path:', eventPath);
 
       await set(newEventRef, serialized);
       console.info('[FirebaseService] Event saved successfully with ID:', newEvent.id);
@@ -505,7 +567,7 @@ class FirebaseService implements IDataService {
     } catch (error: any) {
       console.error('[FirebaseService] Error creating event:', error);
       throw new DataServiceError(
-        `Failed to create event: ${error.message || 'Unknown error'}`,
+        `Failed to create event: ${error?.message || 'Unknown error'}`,
         error.code,
         error
       );
@@ -593,14 +655,23 @@ class FirebaseService implements IDataService {
     try {
       console.info('[FirebaseService] Getting todos for user:', userId);
 
-      // Get user's groups
+      const allTodos: Todo[] = [];
+
+      // 1. Get personal todos from /users/{userId}/personal-todos
+      const personalTodosRef = ref(database, `users/${userId}/personal-todos`);
+      const personalSnapshot = await get(personalTodosRef);
+
+      if (personalSnapshot.exists()) {
+        personalSnapshot.forEach((childSnapshot) => {
+          allTodos.push(this.deserializeTodo(childSnapshot.val()));
+        });
+      }
+
+      // 2. Get group todos from each group the user belongs to
       const groups = await this.getGroups(userId);
       const groupIds = groups.map((g) => g.id);
       console.info('[FirebaseService] User group IDs:', groupIds);
 
-      const allTodos: Todo[] = [];
-
-      // Get todos from each group
       for (const groupId of groupIds) {
         const groupTodosRef = ref(database, `groups/${groupId}/todos`);
         const snapshot = await get(groupTodosRef);
@@ -610,20 +681,6 @@ class FirebaseService implements IDataService {
             allTodos.push(this.deserializeTodo(childSnapshot.val()));
           });
         }
-      }
-
-      // Get personal todos (not in any group)
-      const personalTodosRef = ref(database, 'todos');
-      const personalSnapshot = await get(personalTodosRef);
-
-      if (personalSnapshot.exists()) {
-        personalSnapshot.forEach((childSnapshot) => {
-          const todo = this.deserializeTodo(childSnapshot.val());
-          // Only include personal todos created by this user
-          if (todo.createdBy === userId && !todo.groupId) {
-            allTodos.push(todo);
-          }
-        });
       }
 
       console.info('[FirebaseService] Total todos for user:', allTodos.length);
@@ -638,12 +695,12 @@ class FirebaseService implements IDataService {
     try {
       let todosRef;
 
-      // If todo belongs to a group, save it under the group
-      if (todo.groupId) {
-        todosRef = ref(database, `groups/${todo.groupId}/todos`);
+      // If todo has no groupId, it's a personal todo - store under user
+      if (!todo.groupId) {
+        todosRef = ref(database, `users/${todo.createdBy}/personal-todos`);
       } else {
-        // Otherwise, save it as a personal todo at top level
-        todosRef = ref(database, 'todos');
+        // Group todo - store under the group
+        todosRef = ref(database, `groups/${todo.groupId}/todos`);
       }
 
       const newTodoRef = push(todosRef);
@@ -791,21 +848,17 @@ class FirebaseService implements IDataService {
   // ==================== REAL-TIME LISTENERS ====================
 
   subscribeToGroups(userId: string, callback: (groups: Group[]) => void): () => void {
-    const groupsRef = ref(database, 'groups');
+    const userGroupsRef = ref(database, `user-groups/${userId}`);
 
-    const unsubscribe = onValue(groupsRef, (snapshot) => {
+    const unsubscribe = onValue(userGroupsRef, async (snapshot) => {
       if (!snapshot.exists()) {
         callback([]);
         return;
       }
 
-      const groups: Group[] = [];
-      snapshot.forEach((childSnapshot) => {
-        const group = this.deserializeGroup(childSnapshot.val());
-        if (group.members.includes(userId)) {
-          groups.push(group);
-        }
-      });
+      const groupIds = Object.keys(snapshot.val());
+      const groupPromises = groupIds.map((groupId) => this.getGroupById(groupId));
+      const groups = (await Promise.all(groupPromises)).filter((g): g is Group => g !== null);
 
       callback(groups);
     });
@@ -882,16 +935,34 @@ class FirebaseService implements IDataService {
 
   // Serialization helpers (convert Date to ISO string for Firebase)
   private serializeGroup(group: Partial<Group>): any {
-    return {
+    const serialized: any = {
       ...group,
       createdAt: group.createdAt?.toISOString(),
     };
+
+    // Only add inviteCodeCreatedAt if it exists
+    if (group.inviteCodeCreatedAt) {
+      serialized.inviteCodeCreatedAt = group.inviteCodeCreatedAt.toISOString();
+    }
+
+    // Remove any undefined values
+    Object.keys(serialized).forEach((key) => {
+      if (serialized[key] === undefined) {
+        delete serialized[key];
+      }
+    });
+
+    return serialized;
   }
 
   private deserializeGroup(data: any): Group {
     return {
       ...data,
+      members: data.members || {},
       createdAt: new Date(data.createdAt),
+      inviteCodeCreatedAt: data.inviteCodeCreatedAt
+        ? new Date(data.inviteCodeCreatedAt)
+        : undefined,
     };
   }
 

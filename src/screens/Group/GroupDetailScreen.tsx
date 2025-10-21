@@ -31,7 +31,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [members, setMembers] = useState<
     Array<{ id: string; displayName: string; email: string; role: string }>
   >([]);
-  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const loadGroupData = useCallback(async () => {
     try {
@@ -40,18 +40,39 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       setGroup(groupData);
 
       // Load members information
-      if (groupData?.members && groupData.members.length > 0) {
-        console.info('Loading members:', groupData.members);
-        const membersList = await Promise.all(
-          groupData.members.map(async (memberId) => {
-            try {
-              // Fetch user data for each member
-              console.info('Fetching user data for:', memberId);
-              const userData = await dataService.getUserById(memberId);
-              console.info('User data received:', userData);
+      // Members is now an object: { [userId: string]: boolean }
+      if (groupData?.members && typeof groupData.members === 'object') {
+        const memberIds = Object.keys(groupData.members);
+        console.info('Loading members:', memberIds);
 
-              if (!userData) {
-                console.warn('No user data found for:', memberId);
+        if (memberIds.length > 0) {
+          const membersList = await Promise.all(
+            memberIds.map(async (memberId) => {
+              try {
+                // Fetch user data for each member
+                console.info('Fetching user data for:', memberId);
+                const userData = await dataService.getUserById(memberId);
+                console.info('User data received:', userData);
+
+                if (!userData) {
+                  console.warn('No user data found for:', memberId);
+                  return {
+                    id: memberId,
+                    displayName: 'Unknown User',
+                    email: '',
+                    role: memberId === groupData.createdBy ? 'Owner' : 'Member',
+                  };
+                }
+
+                return {
+                  id: memberId,
+                  displayName:
+                    userData.displayName || userData.email?.split('@')[0] || 'Unknown User',
+                  email: userData.email || '',
+                  role: memberId === groupData.createdBy ? 'Owner' : 'Member',
+                };
+              } catch (error) {
+                console.error('Error loading member:', memberId, error);
                 return {
                   id: memberId,
                   displayName: 'Unknown User',
@@ -59,27 +80,11 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                   role: memberId === groupData.createdBy ? 'Owner' : 'Member',
                 };
               }
-
-              return {
-                id: memberId,
-                displayName:
-                  userData.displayName || userData.email?.split('@')[0] || 'Unknown User',
-                email: userData.email || '',
-                role: memberId === groupData.createdBy ? 'Owner' : 'Member',
-              };
-            } catch (error) {
-              console.error('Error loading member:', memberId, error);
-              return {
-                id: memberId,
-                displayName: 'Unknown User',
-                email: '',
-                role: memberId === groupData.createdBy ? 'Owner' : 'Member',
-              };
-            }
-          })
-        );
-        console.info('Members list loaded:', membersList);
-        setMembers(membersList);
+            })
+          );
+          console.info('Members list loaded:', membersList);
+          setMembers(membersList);
+        }
       }
     } catch (error) {
       console.error('Error loading group:', error);
@@ -266,7 +271,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Button
             title="Invite Members"
-            onPress={() => setInviteModalVisible(true)}
+            onPress={() => setShowInviteModal(true)}
             icon={<Ionicons name="person-add" size={20} color="#ffffff" />}
             fullWidth
             style={styles.button}
@@ -281,13 +286,11 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {/* Invite Bottom Sheet */}
       <InviteBottomSheet
-        isVisible={inviteModalVisible}
-        onClose={() => setInviteModalVisible(false)}
+        isVisible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
         groupId={groupId}
         groupName={group?.name || 'Group'}
-        onInviteCreated={() => {}}
       />
     </View>
   );

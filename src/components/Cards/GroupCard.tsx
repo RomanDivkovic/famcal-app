@@ -91,7 +91,8 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
               style={styles.membersIcon}
             />
             <Text style={styles.membersText}>
-              {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+              {Object.keys(group.members || {}).length}{' '}
+              {Object.keys(group.members || {}).length === 1 ? 'member' : 'members'}
             </Text>
           </View>
         </View>
