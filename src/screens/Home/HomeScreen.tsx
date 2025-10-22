@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, GroupCard, JoinGroupModal } from '../../components';
+import { Header, GroupCard, JoinGroupBottomSheet } from '../../components';
 import { dataService } from '../../services';
 import { Group } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -133,8 +133,8 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>
 
-      <JoinGroupModal
-        visible={showJoinModal}
+      <JoinGroupBottomSheet
+        isVisible={showJoinModal}
         onClose={() => setShowJoinModal(false)}
         onSuccess={() => loadGroups()}
       />

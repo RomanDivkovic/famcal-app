@@ -17,7 +17,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, EventCard, Button, JoinGroupModal } from '../../components';
+import { Header, EventCard, Button, JoinGroupBottomSheet } from '../../components';
 import { dataService } from '../../services';
 import { Event, MainTabParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -403,8 +403,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             />
           </View>
         </View>
-        <JoinGroupModal
-          visible={showJoinModal}
+        <JoinGroupBottomSheet
+          isVisible={showJoinModal}
           onClose={() => setShowJoinModal(false)}
           onSuccess={() => {
             refreshGroups();
@@ -527,7 +527,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                       event={item}
                       onPress={() => {
                         setShowUpcomingModal(false);
-                        // @ts-expect-error - EventDetail is in RootStack
+                        // @ts-expect-error - EventDetail is in RootStack but not in MainTab
                         navigation.navigate('EventDetail', { eventId: item.id });
                       }}
                     />

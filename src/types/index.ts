@@ -98,6 +98,7 @@ export type RootStackParamList = {
   CreateGroup: undefined;
   GroupDetail: { groupId: string };
   CreateEvent: { groupId?: string; date?: Date };
+  EventDetail: { eventId: string };
   CreateTodo: { groupId?: string };
   FAQ: undefined;
 };

@@ -29,7 +29,7 @@ interface JoinGroupModalProps {
 export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose, onSuccess }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { sendGroupInviteNotification } = useNotifications();
+  const { sendGroupInviteNotification, notifyMemberJoined } = useNotifications();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -49,8 +49,8 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
 
       // Format the code
       const codeUpper = inviteCode.toUpperCase().replace(/\s/g, '');
-      if (codeUpper.length !== 6 && codeUpper.length !== 8) {
-        Alert.alert('Invalid Code', 'Invite code must be 6-8 characters');
+      if (codeUpper.length !== 8) {
+        Alert.alert('Invalid Code', 'Invite code must be 8 characters');
         return;
       }
 
@@ -76,15 +76,27 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
       // Join the group
       await dataService.joinGroup(group.id, user.id, codeUpper);
 
-      // Send notification to user
+      // Send notification to user who joined
       try {
         await sendGroupInviteNotification(
           group.name,
           'You' // Since it's the user joining, we say "You"
         );
-        console.info('Group join notification sent');
+        console.info('Group join notification sent to new member');
       } catch (notifError) {
         console.error('Failed to send notification:', notifError);
+        // Don't fail join if notification fails
+      }
+
+      // Notify existing group members that someone joined
+      try {
+        await notifyMemberJoined(
+          user.displayName || user.email?.split('@')[0] || 'Someone',
+          group.name
+        );
+        console.info('Existing members notified of new join');
+      } catch (notifError) {
+        console.error('Failed to notify existing members:', notifError);
         // Don't fail join if notification fails
       }
 
@@ -113,8 +125,8 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
   const formatCode = (text: string) => {
     // Format code to uppercase and remove spaces
     const formatted = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    // Limit to 6 characters
-    return formatted.substring(0, 6);
+    // Limit to 8 characters
+    return formatted.substring(0, 8);
   };
 
   const handleCodeChange = (text: string) => {
@@ -161,6 +173,12 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
     inputContainer: {
       marginBottom: theme.spacing.lg,
     },
+    codeInput: {
+      fontSize: 18,
+      fontWeight: '600',
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+    },
     codeDisplay: {
       backgroundColor: '#F5F5F5',
       padding: theme.spacing.lg,
@@ -200,25 +218,20 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
 
             <View style={styles.content}>
               <Text style={styles.description}>
-                Enter the 6-character invite code shared by a group member to join their group.
+                Enter the 8-character invite code shared by a group member to join their group.
               </Text>
 
               <View style={styles.inputContainer}>
                 <Input
                   label="Invite Code"
-                  placeholder="Enter code (e.g., ABC123)"
+                  placeholder="ABC12345"
                   value={inviteCode}
                   onChangeText={handleCodeChange}
                   icon="key"
                   autoCapitalize="characters"
-                  maxLength={6}
+                  maxLength={8}
+                  style={styles.codeInput}
                 />
-
-                {inviteCode.length > 0 && (
-                  <View style={styles.codeDisplay}>
-                    <Text style={styles.codeText}>{inviteCode}</Text>
-                  </View>
-                )}
               </View>
 
               {loading && (
@@ -233,7 +246,7 @@ export const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ visible, onClose
                 title="Join Group"
                 onPress={handleJoinGroup}
                 loading={loading}
-                disabled={loading || inviteCode.length !== 6}
+                disabled={loading || inviteCode.length !== 8}
                 fullWidth
                 icon={
                   !loading ? <Ionicons name="person-add" size={20} color="#ffffff" /> : undefined

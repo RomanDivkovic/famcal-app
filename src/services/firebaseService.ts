@@ -15,18 +15,7 @@ import {
   reauthenticateWithCredential,
   deleteUser,
 } from 'firebase/auth';
-import {
-  ref,
-  set,
-  get,
-  update,
-  remove,
-  push,
-  onValue,
-  query,
-  orderByChild,
-  equalTo,
-} from 'firebase/database';
+import { ref, set, get, update, remove, push, onValue } from 'firebase/database';
 import { auth, database } from './firebaseConfig';
 import { IDataService, DataServiceError } from './IDataService';
 import { User, Group, Event, Todo, Invitation } from '../types';
@@ -271,22 +260,40 @@ class FirebaseService implements IDataService {
 
   async findGroupByInviteCode(inviteCode: string): Promise<Group | null> {
     try {
+      console.info('[FirebaseService] Searching for group with invite code:', inviteCode);
+
       const groupsRef = ref(database, 'groups');
-      const inviteQuery = query(groupsRef, orderByChild('inviteCode'), equalTo(inviteCode));
-      const snapshot = await get(inviteQuery);
+      const snapshot = await get(groupsRef);
 
-      if (!snapshot.exists()) return null;
+      if (!snapshot.exists()) {
+        console.warn('[FirebaseService] No groups found in database');
+        return null;
+      }
 
-      // Get the first matching group (should only be one)
+      // Iterate through all groups to find matching invite code
       let foundGroup: Group | null = null;
       snapshot.forEach((childSnapshot) => {
-        if (!foundGroup) {
-          foundGroup = this.deserializeGroup(childSnapshot.val());
+        const groupData = childSnapshot.val();
+        console.info(
+          '[FirebaseService] Checking group:',
+          groupData.id,
+          'code:',
+          groupData.inviteCode
+        );
+
+        if (groupData.inviteCode === inviteCode) {
+          foundGroup = this.deserializeGroup(groupData);
+          console.info('[FirebaseService] Found matching group:', foundGroup.id);
         }
       });
 
+      if (!foundGroup) {
+        console.warn('[FirebaseService] No group found with code:', inviteCode);
+      }
+
       return foundGroup;
     } catch (error: any) {
+      console.error('[FirebaseService] Error finding group by invite code:', error);
       throw new DataServiceError('Failed to find group by invite code', error.code, error);
     }
   }
@@ -729,12 +736,19 @@ class FirebaseService implements IDataService {
         throw new DataServiceError('Todo not found');
       }
 
-      const todoRef = todo.groupId
-        ? ref(database, `groups/${todo.groupId}/todos/${todoId}`)
-        : ref(database, `todos/${todoId}`);
+      // Determine the correct reference based on where the todo is stored
+      let todoRef;
+      if (todo.groupId) {
+        // Group todo
+        todoRef = ref(database, `groups/${todo.groupId}/todos/${todoId}`);
+      } else {
+        // Personal todo - stored under user
+        todoRef = ref(database, `users/${todo.createdBy}/personal-todos/${todoId}`);
+      }
 
       await update(todoRef, this.serializeTodo(updates as any));
     } catch (error: any) {
+      console.error('[FirebaseService] Error updating todo:', error);
       throw new DataServiceError('Failed to update todo', error.code, error);
     }
   }
@@ -753,19 +767,37 @@ class FirebaseService implements IDataService {
 
   async toggleTodoComplete(todoId: string, groupId?: string): Promise<void> {
     try {
+      console.info('[FirebaseService] Toggling todo:', todoId, 'groupId:', groupId);
+
       const todo = await this.getTodoById(todoId, groupId);
 
       if (!todo) {
+        console.error('[FirebaseService] Todo not found:', todoId);
         throw new DataServiceError('Todo not found');
       }
+
+      console.info('[FirebaseService] Found todo:', todo);
 
       const updates: Partial<Todo> = {
         completed: !todo.completed,
         completedAt: !todo.completed ? new Date() : undefined,
       };
 
-      await this.updateTodo(todoId, updates);
+      // Determine the correct reference based on where the todo is stored
+      let todoRef;
+      if (todo.groupId) {
+        // Group todo
+        todoRef = ref(database, `groups/${todo.groupId}/todos/${todoId}`);
+      } else {
+        // Personal todo - stored under user
+        todoRef = ref(database, `users/${todo.createdBy}/personal-todos/${todoId}`);
+      }
+
+      console.info('[FirebaseService] Updating todo at path:', todoRef.toString());
+      await update(todoRef, this.serializeTodo(updates as any));
+      console.info('[FirebaseService] Todo toggled successfully');
     } catch (error: any) {
+      console.error('[FirebaseService] Error toggling todo:', error);
       throw new DataServiceError('Failed to toggle todo', error.code, error);
     }
   }

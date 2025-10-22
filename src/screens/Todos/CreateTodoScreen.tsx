@@ -27,7 +27,7 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { groups } = useGroups(user?.id);
-  const { scheduleTodoNotification } = useNotifications();
+  const { scheduleTodoNotification, notifyGroupTodoCreated } = useNotifications();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -82,6 +82,25 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
           console.info('Todo notification scheduled');
         } catch (notifError) {
           console.error('Failed to schedule notification:', notifError);
+          // Don't fail todo creation if notification fails
+        }
+      }
+
+      // Notify all group members if this is a group todo
+      if (selectedGroupId) {
+        try {
+          const group = groups.find((g) => g.id === selectedGroupId);
+          if (group) {
+            await notifyGroupTodoCreated(
+              title.trim(),
+              user.displayName || user.email?.split('@')[0] || 'Someone',
+              group.name,
+              createdTodo.id
+            );
+            console.info('Group members notified of new todo');
+          }
+        } catch (notifError) {
+          console.error('Failed to notify group members:', notifError);
           // Don't fail todo creation if notification fails
         }
       }

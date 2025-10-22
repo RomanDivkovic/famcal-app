@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, TodoItem, Button, JoinGroupModal } from '../../components';
+import { Header, TodoItem, Button, JoinGroupBottomSheet } from '../../components';
 import { dataService } from '../../services';
 import { Todo } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
@@ -224,8 +224,8 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
           </View>
         </View>
-        <JoinGroupModal
-          visible={showJoinModal}
+        <JoinGroupBottomSheet
+          isVisible={showJoinModal}
           onClose={() => setShowJoinModal(false)}
           onSuccess={() => {
             refreshGroups();

@@ -29,7 +29,7 @@ export const CreateEventScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
   const { date } = route.params || {};
   const { groups } = useGroups(user?.id);
-  const { scheduleEventNotification } = useNotifications();
+  const { scheduleEventNotification, notifyGroupEventCreated } = useNotifications();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -96,6 +96,25 @@ export const CreateEventScreen = ({ navigation, route }: Props) => {
       } catch (notifError) {
         console.error('Failed to schedule notification:', notifError);
         // Don't fail event creation if notification fails
+      }
+
+      // Notify all group members if this is a group event
+      if (selectedGroupId) {
+        try {
+          const group = groups.find((g) => g.id === selectedGroupId);
+          if (group) {
+            await notifyGroupEventCreated(
+              createdEvent.title,
+              user.displayName || user.email?.split('@')[0] || 'Someone',
+              group.name,
+              createdEvent.id
+            );
+            console.info('Group members notified of new event');
+          }
+        } catch (notifError) {
+          console.error('Failed to notify group members:', notifError);
+          // Don't fail event creation if notification fails
+        }
       }
 
       // Try to sync to native calendar
