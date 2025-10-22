@@ -95,13 +95,16 @@ class NotificationService {
   async getExpoPushToken(): Promise<string | null> {
     try {
       if (!Device.isDevice) {
+        console.info('Push tokens only work on physical devices, skipping in simulator');
         return null;
       }
 
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
 
-      if (!projectId) {
-        console.warn('No EAS project ID found in app.config.js');
+      if (!projectId || projectId === 'your-project-id') {
+        console.info(
+          'No EAS project ID configured. Run "eas init" to set up push notifications. Local notifications will still work.'
+        );
         return null;
       }
 
@@ -111,8 +114,10 @@ class NotificationService {
 
       console.info('Expo Push Token:', token.data);
       return token.data;
-    } catch (error) {
-      console.error('Error getting push token:', error);
+    } catch {
+      // Silently fail for Expo Go or invalid project ID
+      // This is expected behavior until EAS project is set up
+      console.info('Push token not available (expected in Expo Go or without EAS setup)');
       return null;
     }
   }
@@ -229,6 +234,103 @@ class NotificationService {
       console.info(`Sent group invite notification for: ${groupName}`);
     } catch (error) {
       console.error('Error sending group invite notification:', error);
+    }
+  }
+
+  /**
+   * Notify all group members when a new event is created
+   * @param eventTitle - Event title
+   * @param creatorName - Name of person who created the event
+   * @param groupName - Group name
+   * @param eventId - Event ID
+   */
+  async notifyGroupEventCreated(
+    eventTitle: string,
+    creatorName: string,
+    groupName: string,
+    eventId: string
+  ): Promise<void> {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📅 New Event in ' + groupName,
+          body: `${creatorName} created "${eventTitle}"`,
+          data: {
+            type: 'event',
+            eventId,
+            groupName,
+          },
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.DEFAULT,
+        },
+        trigger: null,
+      });
+
+      console.info(`Sent group event notification for: ${eventTitle}`);
+    } catch (error) {
+      console.error('Error sending group event notification:', error);
+    }
+  }
+
+  /**
+   * Notify all group members when a new todo is created
+   * @param todoTitle - Todo title
+   * @param creatorName - Name of person who created the todo
+   * @param groupName - Group name
+   * @param todoId - Todo ID
+   */
+  async notifyGroupTodoCreated(
+    todoTitle: string,
+    creatorName: string,
+    groupName: string,
+    todoId: string
+  ): Promise<void> {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '✅ New Todo in ' + groupName,
+          body: `${creatorName} added "${todoTitle}"`,
+          data: {
+            type: 'todo',
+            todoId,
+            groupName,
+          },
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.DEFAULT,
+        },
+        trigger: null,
+      });
+
+      console.info(`Sent group todo notification for: ${todoTitle}`);
+    } catch (error) {
+      console.error('Error sending group todo notification:', error);
+    }
+  }
+
+  /**
+   * Notify existing group members when someone joins
+   * @param newMemberName - Name of the person who joined
+   * @param groupName - Group name
+   */
+  async notifyMemberJoined(newMemberName: string, groupName: string): Promise<void> {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '👋 New Member Joined',
+          body: `${newMemberName} joined "${groupName}"`,
+          data: {
+            type: 'member-joined',
+            groupName,
+          },
+          sound: false, // Less intrusive
+          priority: Notifications.AndroidNotificationPriority.LOW,
+        },
+        trigger: null,
+      });
+
+      console.info(`Sent member joined notification for: ${newMemberName}`);
+    } catch (error) {
+      console.error('Error sending member joined notification:', error);
     }
   }
 

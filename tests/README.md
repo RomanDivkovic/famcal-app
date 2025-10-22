@@ -58,6 +58,19 @@ Tests for data validation functions including:
 - Color validation (hex colors)
 - Permission checks (owner, member, edit, view)
 
+### `notificationLogic.test.ts`
+
+Tests for notification business logic including:
+
+- Event notification validation
+- Todo notification validation
+- Trigger time calculation
+- Past date handling
+- Group event notifications
+- Group todo notifications
+- Member joined notifications
+- User/group name validation
+
 ## Test Coverage
 
 These tests cover:
@@ -66,6 +79,9 @@ These tests cover:
 - ✅ Date manipulation utilities
 - ✅ Data validation
 - ✅ Permission checking
+- ✅ Notification business logic
+- ✅ Trigger time calculations
+- ✅ Group collaboration notifications
 - ✅ Edge cases and boundary conditions
 
 ## Why Deno?

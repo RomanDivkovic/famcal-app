@@ -29,6 +29,7 @@ import { GroupDetailScreen } from '../screens/Group/GroupDetailScreen';
 
 // Event Screens
 import { CreateEventScreen } from '../screens/Event/CreateEventScreen';
+import { EventDetailScreen } from '../screens/Event/EventDetailScreen';
 
 // Todo Screens
 import { CreateTodoScreen } from '../screens/Todos/CreateTodoScreen';
@@ -147,6 +148,7 @@ export const AppNavigator = () => {
             <RootStack.Screen name="CreateGroup" component={CreateGroupScreen} />
             <RootStack.Screen name="GroupDetail" component={GroupDetailScreen} />
             <RootStack.Screen name="CreateEvent" component={CreateEventScreen} />
+            <RootStack.Screen name="EventDetail" component={EventDetailScreen} />
             <RootStack.Screen name="CreateTodo" component={CreateTodoScreen} />
             <RootStack.Screen name="FAQ" component={FAQScreen} />
           </>

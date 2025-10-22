@@ -81,6 +81,9 @@ export const useNotifications = () => {
       notificationService.scheduleTodoNotification.bind(notificationService),
     sendGroupInviteNotification:
       notificationService.sendGroupInviteNotification.bind(notificationService),
+    notifyGroupEventCreated: notificationService.notifyGroupEventCreated.bind(notificationService),
+    notifyGroupTodoCreated: notificationService.notifyGroupTodoCreated.bind(notificationService),
+    notifyMemberJoined: notificationService.notifyMemberJoined.bind(notificationService),
     cancelNotification: notificationService.cancelNotification.bind(notificationService),
     cancelAllNotifications: notificationService.cancelAllNotifications.bind(notificationService),
   };
