@@ -278,6 +278,11 @@ class ApiService implements IDataService {
     await this.post(`/todos/${todoId}/toggle`);
   }
 
+  async cleanupCompletedTodos(userId: string): Promise<number> {
+    const response = await this.post<{ deletedCount: number }>(`/users/${userId}/todos/cleanup`);
+    return response.deletedCount;
+  }
+
   // ==================== INVITATIONS ====================
 
   async createInvitation(groupId: string, email: string, invitedBy: string): Promise<Invitation> {

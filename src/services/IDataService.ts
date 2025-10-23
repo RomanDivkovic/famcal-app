@@ -45,6 +45,7 @@ export interface IDataService {
   updateTodo(todoId: string, updates: Partial<Todo>): Promise<void>;
   deleteTodo(todoId: string, groupId?: string): Promise<void>;
   toggleTodoComplete(todoId: string, groupId?: string): Promise<void>;
+  cleanupCompletedTodos(userId: string): Promise<number>;
 
   // Invitations
   createInvitation(groupId: string, email: string, invitedBy: string): Promise<Invitation>;

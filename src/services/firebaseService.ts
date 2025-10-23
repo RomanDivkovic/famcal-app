@@ -465,13 +465,68 @@ class FirebaseService implements IDataService {
 
   async getEventById(eventId: string): Promise<Event | null> {
     try {
-      const eventRef = ref(database, `events/${eventId}`);
-      const snapshot = await get(eventRef);
+      console.info('[FirebaseService] getEventById:', eventId);
 
-      if (!snapshot.exists()) return null;
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.warn('[FirebaseService] No user logged in');
+        return null;
+      }
 
-      return this.deserializeEvent(snapshot.val());
+      // Try personal events under user first
+      try {
+        const personalEventRef = ref(
+          database,
+          `users/${currentUser.uid}/personal-events/${eventId}`
+        );
+        const personalSnapshot = await get(personalEventRef);
+        if (personalSnapshot.exists()) {
+          console.info('[FirebaseService] Found event at /users/{uid}/personal-events/');
+          return this.deserializeEvent(personalSnapshot.val());
+        }
+      } catch (personalError) {
+        console.warn('[FirebaseService] Could not check personal events:', personalError);
+      }
+
+      // Search all user's groups for the event
+      try {
+        const groups = await this.getGroups(currentUser.uid);
+        console.info(`[FirebaseService] Searching ${groups.length} groups for event`);
+
+        for (const group of groups) {
+          try {
+            const groupEventRef = ref(database, `groups/${group.id}/events/${eventId}`);
+            const snapshot = await get(groupEventRef);
+            if (snapshot.exists()) {
+              console.info(
+                `[FirebaseService] Found event at /groups/${group.id}/events/ (${group.name})`
+              );
+              return this.deserializeEvent(snapshot.val());
+            }
+          } catch (groupError) {
+            // Continue to next group
+          }
+        }
+      } catch (groupsError) {
+        console.warn('[FirebaseService] Could not search user groups:', groupsError);
+      }
+
+      // Try root events as fallback (legacy support)
+      try {
+        const rootEventRef = ref(database, `events/${eventId}`);
+        const rootSnapshot = await get(rootEventRef);
+        if (rootSnapshot.exists()) {
+          console.info('[FirebaseService] Found event at /events/');
+          return this.deserializeEvent(rootSnapshot.val());
+        }
+      } catch (rootError) {
+        console.warn('[FirebaseService] Could not check root events:', rootError);
+      }
+
+      console.warn('[FirebaseService] Event not found in any location:', eventId);
+      return null;
     } catch (error: any) {
+      console.error('[FirebaseService] Error getting event:', error);
       throw new DataServiceError('Failed to get event', error.code, error);
     }
   }
@@ -637,23 +692,84 @@ class FirebaseService implements IDataService {
 
   async getTodoById(todoId: string, groupId?: string): Promise<Todo | null> {
     try {
-      // Try group todos first if groupId is provided
+      console.info('[FirebaseService] getTodoById:', todoId, 'groupId:', groupId);
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.warn('[FirebaseService] No user logged in');
+        return null;
+      }
+
+      // If groupId is provided, check that specific group first
       if (groupId) {
-        const groupTodoRef = ref(database, `groups/${groupId}/todos/${todoId}`);
-        const snapshot = await get(groupTodoRef);
-        if (snapshot.exists()) {
-          return this.deserializeTodo(snapshot.val());
+        try {
+          const groupTodoRef = ref(database, `groups/${groupId}/todos/${todoId}`);
+          const snapshot = await get(groupTodoRef);
+          if (snapshot.exists()) {
+            console.info('[FirebaseService] Found todo at /groups/{groupId}/todos/');
+            return this.deserializeTodo(snapshot.val());
+          }
+        } catch (groupError) {
+          console.warn('[FirebaseService] Could not check specific group todos:', groupError);
         }
       }
 
-      // Fall back to personal todos
-      const todoRef = ref(database, `todos/${todoId}`);
-      const snapshot = await get(todoRef);
+      // Try personal todos under user
+      try {
+        const personalTodoRef = ref(database, `users/${currentUser.uid}/personal-todos/${todoId}`);
+        const personalSnapshot = await get(personalTodoRef);
+        if (personalSnapshot.exists()) {
+          console.info('[FirebaseService] Found todo at /users/{uid}/personal-todos/');
+          return this.deserializeTodo(personalSnapshot.val());
+        }
+      } catch (personalError) {
+        console.warn('[FirebaseService] Could not check personal todos:', personalError);
+      }
 
-      if (!snapshot.exists()) return null;
+      // If not found yet and no specific groupId was provided, check ALL user's groups
+      if (!groupId) {
+        try {
+          const groups = await this.getGroups(currentUser.uid);
+          console.info(`[FirebaseService] Searching ${groups.length} groups for todo`);
 
-      return this.deserializeTodo(snapshot.val());
+          for (const group of groups) {
+            try {
+              const groupTodoRef = ref(database, `groups/${group.id}/todos/${todoId}`);
+              const snapshot = await get(groupTodoRef);
+              if (snapshot.exists()) {
+                console.info(
+                  `[FirebaseService] Found todo at /groups/${group.id}/todos/ (${group.name})`
+                );
+                return this.deserializeTodo(snapshot.val());
+              }
+            } catch (groupError) {
+              // Continue to next group
+            }
+          }
+        } catch (groupsError) {
+          console.warn('[FirebaseService] Could not search user groups:', groupsError);
+        }
+      }
+
+      // Try root todos as last resort (may have permission issues)
+      try {
+        const rootTodoRef = ref(database, `todos/${todoId}`);
+        const rootSnapshot = await get(rootTodoRef);
+        if (rootSnapshot.exists()) {
+          console.info('[FirebaseService] Found todo at /todos/');
+          return this.deserializeTodo(rootSnapshot.val());
+        }
+      } catch (rootError) {
+        console.warn(
+          '[FirebaseService] Could not check root todos (permission or not found):',
+          rootError
+        );
+      }
+
+      console.warn('[FirebaseService] Todo not found in any location:', todoId);
+      return null;
     } catch (error: any) {
+      console.error('[FirebaseService] Error getting todo:', error);
       throw new DataServiceError('Failed to get todo', error.code, error);
     }
   }
@@ -785,12 +901,26 @@ class FirebaseService implements IDataService {
 
       // Determine the correct reference based on where the todo is stored
       let todoRef;
+
+      // Try to locate the todo in this priority order:
+      // 1. Group todos (if groupId present)
+      // 2. Personal todos (under user)
+      // 3. Root todos (fallback)
+
       if (todo.groupId) {
-        // Group todo
+        console.info('[FirebaseService] Updating todo at /groups/{groupId}/todos/');
         todoRef = ref(database, `groups/${todo.groupId}/todos/${todoId}`);
       } else {
-        // Personal todo - stored under user
-        todoRef = ref(database, `users/${todo.createdBy}/personal-todos/${todoId}`);
+        // Personal todo at /users/{userId}/personal-todos/
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          console.info('[FirebaseService] Updating todo at /users/{uid}/personal-todos/');
+          todoRef = ref(database, `users/${currentUser.uid}/personal-todos/${todoId}`);
+        } else {
+          // Fallback to root (should rarely happen)
+          console.warn('[FirebaseService] No user logged in, trying /todos/');
+          todoRef = ref(database, `todos/${todoId}`);
+        }
       }
 
       console.info('[FirebaseService] Updating todo at path:', todoRef.toString());
@@ -799,6 +929,52 @@ class FirebaseService implements IDataService {
     } catch (error: any) {
       console.error('[FirebaseService] Error toggling todo:', error);
       throw new DataServiceError('Failed to toggle todo', error.code, error);
+    }
+  }
+
+  /**
+   * Clean up old completed todos (older than 3 days)
+   * This helps reduce database size and improve performance
+   */
+  async cleanupCompletedTodos(userId: string): Promise<number> {
+    try {
+      console.info('[FirebaseService] Starting cleanup of completed todos for user:', userId);
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      const threeDaysAgoTime = threeDaysAgo.getTime();
+
+      let deletedCount = 0;
+
+      // Get all todos for the user
+      const todos = await this.getTodosForUser(userId);
+
+      // Filter completed todos older than 3 days
+      const todosToDelete = todos.filter((todo) => {
+        if (!todo.completed || !todo.completedAt) return false;
+        const completedAt = new Date(todo.completedAt);
+        return completedAt.getTime() < threeDaysAgoTime;
+      });
+
+      console.info(
+        `[FirebaseService] Found ${todosToDelete.length} completed todos older than 3 days`
+      );
+
+      // Delete each old completed todo
+      for (const todo of todosToDelete) {
+        try {
+          await this.deleteTodo(todo.id, todo.groupId);
+          deletedCount++;
+          console.info(`[FirebaseService] Deleted old completed todo: ${todo.id}`);
+        } catch (error) {
+          console.error(`[FirebaseService] Failed to delete todo ${todo.id}:`, error);
+        }
+      }
+
+      console.info(`[FirebaseService] Cleanup complete. Deleted ${deletedCount} todos`);
+      return deletedCount;
+    } catch (error: any) {
+      console.error('[FirebaseService] Error during todo cleanup:', error);
+      throw new DataServiceError('Failed to cleanup completed todos', error.code, error);
     }
   }
 

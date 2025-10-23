@@ -2,13 +2,20 @@
  * Home Screen - Display list of groups
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, GroupCard, JoinGroupBottomSheet } from '../../components';
+import {
+  Header,
+  GroupCard,
+  LoadingOverlay,
+  JoinGroupBottomSheet,
+  CustomRefreshControl,
+} from '../../components';
+import { RootStackParamList, Group } from '../../types';
 import { dataService } from '../../services';
-import { Group } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -16,7 +23,6 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { user } = useAuth();
 
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -33,7 +39,6 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     } catch (error) {
       console.error('Error loading groups:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -120,13 +125,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.content, groups.length === 0 && { flex: 1 }]}
         ListEmptyComponent={renderEmpty}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-          />
-        }
+        refreshControl={<CustomRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       />
 
       <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>

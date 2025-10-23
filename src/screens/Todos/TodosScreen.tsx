@@ -3,12 +3,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, TodoItem, Button, JoinGroupBottomSheet } from '../../components';
-import { dataService } from '../../services';
+import {
+  Header,
+  TodoItem,
+  CustomRefreshControl,
+  Button,
+  JoinGroupBottomSheet,
+} from '../../components';
 import { Todo } from '../../types';
+import { dataService } from '../../services';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroups } from '../../hooks';
 
@@ -18,8 +24,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups(user?.id);
 
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -31,6 +36,18 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (!user) return;
 
     try {
+      // Clean up old completed todos (3+ days old) in the background
+      dataService
+        .cleanupCompletedTodos(user.id)
+        .then((deletedCount) => {
+          if (deletedCount > 0) {
+            console.info(`Cleaned up ${deletedCount} old completed todos`);
+          }
+        })
+        .catch((error) => {
+          console.error('Error cleaning up todos:', error);
+        });
+
       const userTodos = await dataService.getTodosForUser(user.id);
       setTodos(
         userTodos.sort((a, b) => {
@@ -47,7 +64,6 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     } catch (error) {
       console.error('Error loading todos:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -293,13 +309,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           ) : null
         }
         ListEmptyComponent={renderEmpty}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-          />
-        }
+        refreshControl={<CustomRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       />
 
       <TouchableOpacity style={styles.fab} onPress={handleCreateTodo}>
