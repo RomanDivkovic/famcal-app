@@ -12,35 +12,50 @@ interface CustomRefreshControlProps extends Omit<RefreshControlProps, 'refreshin
   onRefresh: () => void;
 }
 
-export const CustomRefreshControl: React.FC<CustomRefreshControlProps> = ({
+export const CustomRefreshControl: React.FC<CustomRefreshControlProps & { children?: React.ReactNode }> = ({
   refreshing,
   onRefresh,
+  children,
   ...props
 }) => {
   return (
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      tintColor="transparent"
-      colors={['transparent']}
-      style={{ backgroundColor: 'transparent' }}
-      {...props}
-    >
+    <View style={{ flex: 1 }}>
+      {children}
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor="transparent"
+        colors={['transparent']}
+        style={{ backgroundColor: 'transparent', position: 'absolute', top: 0, left: 0, right: 0, height: 0 }}
+        {...props}
+      />
       {refreshing && (
-        <View style={styles.lottieContainer}>
-          <LottieView
-            source={require('../../../assets/animations/mini_loader.json')}
-            autoPlay
-            loop
-            style={styles.lottie}
-          />
+        <View style={styles.lottieOverlay}>
+          <View style={styles.lottieContainer}>
+            <LottieView
+              source={require('../../../assets/animations/mini_loader.json')}
+              autoPlay
+              loop
+              style={styles.lottie}
+            />
+          </View>
         </View>
       )}
-    </RefreshControl>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  lottieOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
   lottieContainer: {
     alignItems: 'center',
     justifyContent: 'center',
