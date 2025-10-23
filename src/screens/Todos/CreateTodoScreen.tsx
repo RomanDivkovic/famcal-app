@@ -199,7 +199,11 @@ export const CreateTodoScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <Header title="Create Todo" showBack onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Input
           label="Todo Title"
           placeholder="Enter todo title"

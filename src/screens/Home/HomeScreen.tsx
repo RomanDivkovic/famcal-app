@@ -62,7 +62,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       backgroundColor: theme.colors.background,
     },
     content: {
-      flex: 1,
+      flexGrow: 0,
       padding: theme.spacing.md,
     },
     emptyContainer: {

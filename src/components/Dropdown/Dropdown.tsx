@@ -1,16 +1,18 @@
 /**
  * Dropdown Component
- * Custom dropdown/picker component with bottom sheet
+ * Simple dropdown component with modal
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle } from 'react-native';
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetView,
-  BottomSheetFlatList,
-  BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  FlatList,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -43,45 +45,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
 }) => {
   const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const bottomSheetRef = React.useRef<BottomSheet>(null);
 
-  // Find the selected option
   const selectedOption = options.find((opt) => opt.value === value);
 
-  // Calculate snap points based on number of options
-  const snapPoints = useMemo(() => {
-    const itemHeight = 60;
-    const headerHeight = 60;
-    const maxHeight = 500;
-    const calculatedHeight = Math.min(headerHeight + options.length * itemHeight, maxHeight);
-    return [calculatedHeight];
-  }, [options.length]);
-
-  const handleOpen = useCallback(() => {
-    if (disabled) return;
-    setIsOpen(true);
-    bottomSheetRef.current?.expand();
-  }, [disabled]);
-
-  const handleClose = useCallback(() => {
+  const handleSelect = (optionValue: string) => {
+    onSelect(optionValue);
     setIsOpen(false);
-    bottomSheetRef.current?.close();
-  }, []);
-
-  const handleSelect = useCallback(
-    (optionValue: string) => {
-      onSelect(optionValue);
-      handleClose();
-    },
-    [onSelect, handleClose]
-  );
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
-    ),
-    []
-  );
+  };
 
   const renderOption = ({ item }: { item: DropdownOption }) => {
     const isSelected = item.value === value;
@@ -90,7 +60,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
       <TouchableOpacity
         style={[
           styles.option,
-          { borderBottomColor: theme.colors.border },
+          {
+            borderBottomColor: theme.colors.border,
+            backgroundColor: theme.colors.background,
+          },
           isSelected && { backgroundColor: theme.colors.surface },
         ]}
         onPress={() => handleSelect(item.value)}
@@ -154,20 +127,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
       color: theme.colors.textSecondary,
       flex: 1,
     },
-    sheetContainer: {
-      backgroundColor: theme.colors.background,
-      borderTopLeftRadius: theme.borderRadius.lg,
-      borderTopRightRadius: theme.borderRadius.lg,
-    },
-    sheetHeader: {
-      padding: theme.spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    sheetTitle: {
-      ...theme.typography.h3,
-      color: theme.colors.text,
-    },
   });
 
   return (
@@ -176,7 +135,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         {label && <Text style={internalStyles.label}>{label}</Text>}
         <TouchableOpacity
           style={internalStyles.trigger}
-          onPress={handleOpen}
+          onPress={() => setIsOpen(true)}
           disabled={disabled}
           activeOpacity={0.7}
         >
@@ -203,36 +162,74 @@ export const Dropdown: React.FC<DropdownProps> = ({
         </TouchableOpacity>
       </View>
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        onClose={handleClose}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={internalStyles.sheetContainer}
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
       >
-        <BottomSheetView style={internalStyles.sheetHeader}>
-          <Text style={internalStyles.sheetTitle}>{label || 'Select an option'}</Text>
-        </BottomSheetView>
-        <BottomSheetFlatList
-          data={options}
-          renderItem={renderOption}
-          keyExtractor={(item: DropdownOption) => item.value}
-          showsVerticalScrollIndicator={true}
-          contentContainerStyle={{ paddingBottom: 20 }}
-        />
-      </BottomSheet>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsOpen(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                {label || 'Select an option'}
+              </Text>
+              <TouchableOpacity onPress={() => setIsOpen(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={options}
+              renderItem={renderOption}
+              keyExtractor={(item) => item.value}
+              style={styles.optionsList}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  option: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  optionsList: {
+    maxHeight: 400,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
   },
   optionIcon: {
     marginRight: 12,

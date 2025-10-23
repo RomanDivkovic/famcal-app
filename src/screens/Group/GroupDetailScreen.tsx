@@ -34,9 +34,11 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     members,
     showInviteModal,
     handleLeaveGroup,
+    handleDeleteGroup,
     getInitials,
     openInviteModal,
     closeInviteModal,
+    isOwner,
   } = useGroupDetail(groupId);
 
   const styles = createStyles(theme);
@@ -54,7 +56,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <View style={styles.container}>
         <Header title="Group Details" showBack onBack={() => navigation.goBack()} />
-        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={styles.content}>
           <Text style={styles.emptyText}>Group not found</Text>
         </View>
       </View>
@@ -108,13 +110,23 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             fullWidth
             style={styles.button}
           />
-          <Button
-            title="Leave Group"
-            onPress={() => handleLeaveGroup(() => navigation.goBack())}
-            variant="outline"
-            fullWidth
-            style={styles.button}
-          />
+          {isOwner ? (
+            <Button
+              title="Delete Group"
+              onPress={() => handleDeleteGroup(() => navigation.goBack())}
+              variant="outline"
+              fullWidth
+              style={styles.button}
+            />
+          ) : (
+            <Button
+              title="Leave Group"
+              onPress={() => handleLeaveGroup(() => navigation.goBack())}
+              variant="outline"
+              fullWidth
+              style={styles.button}
+            />
+          )}
         </View>
       </ScrollView>
 

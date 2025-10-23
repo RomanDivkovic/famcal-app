@@ -2,7 +2,7 @@
  * Todos Screen - Display and manage todos
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +27,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const hasCleanedUp = useRef(false);
 
   useEffect(() => {
     loadTodos();
@@ -36,17 +37,20 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (!user) return;
 
     try {
-      // Clean up old completed todos (3+ days old) in the background
-      dataService
-        .cleanupCompletedTodos(user.id)
-        .then((deletedCount) => {
-          if (deletedCount > 0) {
-            console.info(`Cleaned up ${deletedCount} old completed todos`);
-          }
-        })
-        .catch((error) => {
-          console.error('Error cleaning up todos:', error);
-        });
+      // Clean up old completed todos once per session (3+ days old) in the background
+      if (!hasCleanedUp.current) {
+        hasCleanedUp.current = true;
+        dataService
+          .cleanupCompletedTodos(user.id)
+          .then((deletedCount) => {
+            if (deletedCount > 0) {
+              console.info(`Cleaned up ${deletedCount} old completed todos`);
+            }
+          })
+          .catch((error) => {
+            console.error('Error cleaning up todos:', error);
+          });
+      }
 
       const userTodos = await dataService.getTodosForUser(user.id);
       setTodos(
@@ -132,7 +136,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       color: '#ffffff',
     },
     content: {
-      flex: 1,
+      flexGrow: 0,
       padding: theme.spacing.md,
     },
     statsContainer: {

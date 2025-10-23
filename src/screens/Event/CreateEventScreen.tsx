@@ -232,7 +232,11 @@ export const CreateEventScreen = ({ navigation, route }: Props) => {
   return (
     <View style={styles.container}>
       <Header title="Create Event" showBack onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Input
           label="Event Title"
           placeholder="Enter event title"
