@@ -493,18 +493,25 @@ class FirebaseService implements IDataService {
         const groups = await this.getGroups(currentUser.uid);
         console.info(`[FirebaseService] Searching ${groups.length} groups for event`);
 
-        for (const group of groups) {
-          try {
-            const groupEventRef = ref(database, `groups/${group.id}/events/${eventId}`);
-            const snapshot = await get(groupEventRef);
-            if (snapshot.exists()) {
-              console.info(
-                `[FirebaseService] Found event at /groups/${group.id}/events/ (${group.name})`
-              );
-              return this.deserializeEvent(snapshot.val());
-            }
-          } catch (groupError) {
-            // Continue to next group
+        // Fetch all group events in parallel
+        const groupEventPromises = groups.map(group => {
+          const groupEventRef = ref(database, `groups/${group.id}/events/${eventId}`);
+          return get(groupEventRef)
+            .then(snapshot => ({ group, snapshot }))
+            .catch(error => ({ group, error, snapshot: null }));
+        });
+        const results = await Promise.allSettled(groupEventPromises);
+        for (const result of results) {
+          if (
+            result.status === 'fulfilled' &&
+            result.value.snapshot &&
+            result.value.snapshot.exists()
+          ) {
+            const { group, snapshot } = result.value;
+            console.info(
+              `[FirebaseService] Found event at /groups/${group.id}/events/ (${group.name})`
+            );
+            return this.deserializeEvent(snapshot.val());
           }
         }
       } catch (groupsError) {
