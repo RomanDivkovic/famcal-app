@@ -3,14 +3,22 @@
  * Form for creating a new calendar event
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGroups, useNotifications } from '../../hooks';
-import { Header, Button, Input, LoadingOverlay, DateTimePickerModal } from '../../components';
+import {
+  Header,
+  Button,
+  Input,
+  LoadingOverlay,
+  DateTimePickerModal,
+  Dropdown,
+  type DropdownOption,
+} from '../../components';
 import { RootStackParamList } from '../../types';
 import { dataService } from '../../services';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +50,27 @@ export const CreateEventScreen = ({ navigation, route }: Props) => {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Create dropdown options from groups
+  const groupOptions = useMemo<DropdownOption[]>(() => {
+    const options: DropdownOption[] = [
+      {
+        label: 'Personal Event',
+        value: 'personal',
+        icon: 'person-outline',
+      },
+    ];
+
+    groups.forEach((group) => {
+      options.push({
+        label: group.name,
+        value: group.id,
+        icon: 'people-outline',
+      });
+    });
+
+    return options;
+  }, [groups]);
 
   const handleCreateEvent = async () => {
     if (!title.trim()) {
@@ -238,43 +267,15 @@ export const CreateEventScreen = ({ navigation, route }: Props) => {
           </TouchableOpacity>
         </View>
 
-        <View>
-          <Text style={styles.dateLabel}>Event Type</Text>
-          <TouchableOpacity
-            style={[styles.dateButton, !selectedGroupId && styles.selectedButton]}
-            onPress={() => setSelectedGroupId(undefined)}
-          >
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color={theme.colors.text}
-              style={{ marginRight: theme.spacing.sm }}
-            />
-            <Text style={styles.dateText}>Personal Event</Text>
-            {!selectedGroupId && (
-              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-            )}
-          </TouchableOpacity>
-
-          {groups.map((group) => (
-            <TouchableOpacity
-              key={group.id}
-              style={[styles.dateButton, selectedGroupId === group.id && styles.selectedButton]}
-              onPress={() => setSelectedGroupId(group.id)}
-            >
-              <Ionicons
-                name="people-outline"
-                size={20}
-                color={theme.colors.text}
-                style={{ marginRight: theme.spacing.sm }}
-              />
-              <Text style={styles.dateText}>{group.name}</Text>
-              {selectedGroupId === group.id && (
-                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Dropdown
+          label="Event Type"
+          placeholder="Select event type"
+          value={selectedGroupId || 'personal'}
+          options={groupOptions}
+          onSelect={(value) => {
+            setSelectedGroupId(value === 'personal' ? undefined : value);
+          }}
+        />
 
         <View style={styles.buttonContainer}>
           <Button
