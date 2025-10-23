@@ -200,20 +200,32 @@ class FirebaseService implements IDataService {
         await Promise.all(deletions);
       }
 
-      // Remove user from all groups
+      // Remove user from all groups AND delete groups where user is admin
       const groupsRef = ref(database, 'groups');
       const groupsSnapshot = await get(groupsRef);
       if (groupsSnapshot.exists()) {
         const updates: { [key: string]: any } = {};
+        const groupDeletions: Promise<void>[] = [];
+
         groupsSnapshot.forEach((childSnapshot) => {
           const group = childSnapshot.val();
-          if (group.members && group.members[userId]) {
-            updates[`groups/${childSnapshot.key}/members/${userId}`] = null;
+          const groupId = childSnapshot.key;
+
+          // If user is admin/owner, delete the entire group
+          if (group.createdBy === userId) {
+            groupDeletions.push(remove(ref(database, `groups/${groupId}`)));
+          }
+          // Otherwise, just remove user from the group
+          else if (group.members && group.members[userId]) {
+            updates[`groups/${groupId}/members/${userId}`] = null;
           }
         });
-        if (Object.keys(updates).length > 0) {
-          await update(ref(database), updates);
-        }
+
+        // Execute all deletions and updates
+        await Promise.all([
+          ...groupDeletions,
+          Object.keys(updates).length > 0 ? update(ref(database), updates) : Promise.resolve(),
+        ]);
       }
 
       // Finally, delete the Firebase auth user
@@ -494,11 +506,11 @@ class FirebaseService implements IDataService {
         console.info(`[FirebaseService] Searching ${groups.length} groups for event`);
 
         // Fetch all group events in parallel
-        const groupEventPromises = groups.map(group => {
+        const groupEventPromises = groups.map((group) => {
           const groupEventRef = ref(database, `groups/${group.id}/events/${eventId}`);
           return get(groupEventRef)
-            .then(snapshot => ({ group, snapshot }))
-            .catch(error => ({ group, error, snapshot: null }));
+            .then((snapshot) => ({ group, snapshot }))
+            .catch((error) => ({ group, error, snapshot: null }));
         });
         const results = await Promise.allSettled(groupEventPromises);
         for (const result of results) {
@@ -733,25 +745,34 @@ class FirebaseService implements IDataService {
         console.warn('[FirebaseService] Could not check personal todos:', personalError);
       }
 
-      // If not found yet and no specific groupId was provided, check ALL user's groups
+      // If not found yet and no specific groupId was provided, check ALL user's groups in parallel
       if (!groupId) {
         try {
           const groups = await this.getGroups(currentUser.uid);
           console.info(`[FirebaseService] Searching ${groups.length} groups for todo`);
 
-          for (const group of groups) {
+          // Fetch from all groups in parallel
+          const groupChecks = groups.map(async (group) => {
             try {
               const groupTodoRef = ref(database, `groups/${group.id}/todos/${todoId}`);
               const snapshot = await get(groupTodoRef);
               if (snapshot.exists()) {
-                console.info(
-                  `[FirebaseService] Found todo at /groups/${group.id}/todos/ (${group.name})`
-                );
-                return this.deserializeTodo(snapshot.val());
+                return { group, snapshot };
               }
+              return null;
             } catch (groupError) {
-              // Continue to next group
+              return null;
             }
+          });
+
+          const results = await Promise.all(groupChecks);
+          const found = results.find((result) => result !== null);
+
+          if (found) {
+            console.info(
+              `[FirebaseService] Found todo at /groups/${found.group.id}/todos/ (${found.group.name})`
+            );
+            return this.deserializeTodo(found.snapshot.val());
           }
         } catch (groupsError) {
           console.warn('[FirebaseService] Could not search user groups:', groupsError);

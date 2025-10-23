@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { dataService } from '../../services';
 import { Group } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Member {
   id: string;
@@ -20,6 +21,7 @@ export function useGroupDetail(groupId: string) {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const { user } = useAuth();
 
   const loadGroupData = useCallback(async () => {
     try {
@@ -84,25 +86,57 @@ export function useGroupDetail(groupId: string) {
     loadGroupData();
   }, [loadGroupData]);
 
-  const handleLeaveGroup = useCallback((onSuccess: () => void) => {
-    Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            // TODO: Implement leave group functionality
-            Alert.alert('Success', 'You have left the group');
-            onSuccess();
-          } catch (error) {
-            console.error('Error leaving group:', error);
-            Alert.alert('Error', 'Failed to leave group');
-          }
+  const handleLeaveGroup = useCallback(
+    (onSuccess: () => void) => {
+      if (!user) return;
+
+      Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dataService.leaveGroup(groupId, user.id);
+              Alert.alert('Success', 'You have left the group');
+              onSuccess();
+            } catch (error) {
+              console.error('Error leaving group:', error);
+              Alert.alert('Error', 'Failed to leave group');
+            }
+          },
         },
-      },
-    ]);
-  }, []);
+      ]);
+    },
+    [groupId, user]
+  );
+
+  const handleDeleteGroup = useCallback(
+    (onSuccess: () => void) => {
+      Alert.alert(
+        'Delete Group',
+        'Are you sure you want to delete this group? This action cannot be undone and will remove all events and todos associated with this group.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await dataService.deleteGroup(groupId);
+                Alert.alert('Success', 'Group has been deleted');
+                onSuccess();
+              } catch (error) {
+                console.error('Error deleting group:', error);
+                Alert.alert('Error', 'Failed to delete group');
+              }
+            },
+          },
+        ]
+      );
+    },
+    [groupId]
+  );
 
   const getInitials = useCallback((name: string) => {
     const parts = name.split(' ');
@@ -121,8 +155,10 @@ export function useGroupDetail(groupId: string) {
     members,
     showInviteModal,
     handleLeaveGroup,
+    handleDeleteGroup,
     getInitials,
     openInviteModal,
     closeInviteModal,
+    isOwner: user?.id === group?.createdBy,
   };
 }
