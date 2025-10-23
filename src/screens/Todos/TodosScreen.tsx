@@ -24,7 +24,7 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups(user?.id);
 
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [refreshing, setRefreshing] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [showJoinModal, setShowJoinModal] = useState(false);
 
