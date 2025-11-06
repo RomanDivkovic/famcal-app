@@ -1,12 +1,11 @@
 /**
- * Calendar Screen - Display personal and group events
+ * Calendar Screen - Display personal and group events (Refactored)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   Alert,
@@ -18,13 +17,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header, EventCard, Button, JoinGroupBottomSheet } from '../../components';
-import { dataService } from '../../services';
 import { Event, MainTabParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
-import * as Calendar from 'expo-calendar';
 import { format } from 'date-fns';
-import { useEvents, useGroups } from '../../hooks';
+import { useEvents, useGroups, useCalendarSync, useCalendarDates } from '../../hooks';
 import { Calendar as RNCalendar, DateData } from 'react-native-calendars';
+import { createCalendarStyles } from './CalendarScreen.styles';
 
 type CalendarScreenNavigationProp = NativeStackNavigationProp<MainTabParamList, 'Calendar'>;
 
@@ -38,122 +36,40 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { events, loading, refresh } = useEvents(user?.id);
   const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups(user?.id);
 
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [calendarPermission, setCalendarPermission] = useState(false);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  // Calendar date management
+  const { selectedDate, setSelectedDate, filteredEvents, markedDates, upcomingEvents } =
+    useCalendarDates(events);
+
+  // Calendar sync functionality
+  const {
+    calendarPermission,
+    importing,
+    requestCalendarPermission,
+    importNativeCalendarEvents,
+    syncEventToNativeCalendar,
+  } = useCalendarSync({ userId: user?.id, onImportComplete: refresh });
+
+  // UI state
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
 
-  // Check calendar permission on mount
-  useEffect(() => {
-    checkCalendarPermission();
-  }, []);
+  const styles = createCalendarStyles(theme);
 
-  // Filter events by selected date
-  useEffect(() => {
-    const dayEvents = events.filter((event) => {
-      const eventDate = format(new Date(event.startDate), 'yyyy-MM-dd');
-      return eventDate === selectedDate;
+  // Update marked dates with theme color
+  const themedMarkedDates = React.useMemo(() => {
+    const themed = { ...markedDates };
+    Object.keys(themed).forEach((key) => {
+      if (themed[key].dots) {
+        themed[key].dots = themed[key].dots!.map(() => ({
+          color: theme.colors.primary,
+        }));
+      }
+      if (themed[key].selectedColor) {
+        themed[key].selectedColor = theme.colors.primary;
+      }
     });
-
-    setFilteredEvents(
-      dayEvents.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-    );
-  }, [events, selectedDate]);
-
-  // Create marked dates object for calendar
-  const markedDates = React.useMemo(() => {
-    const marked: {
-      [key: string]: {
-        marked?: boolean;
-        dots?: Array<{ color: string }>;
-        selected?: boolean;
-        selectedColor?: string;
-      };
-    } = {};
-
-    events.forEach((event) => {
-      const dateKey = format(new Date(event.startDate), 'yyyy-MM-dd');
-      if (!marked[dateKey]) {
-        marked[dateKey] = { marked: true, dots: [] };
-      }
-      marked[dateKey].dots!.push({
-        color: theme.colors.primary,
-      });
-    });
-
-    // Mark selected date
-    marked[selectedDate] = {
-      ...(marked[selectedDate] || {}),
-      selected: true,
-      selectedColor: theme.colors.primary,
-    };
-
-    return marked;
-  }, [events, selectedDate, theme.colors.primary]);
-
-  const checkCalendarPermission = async () => {
-    const { status } = await Calendar.getCalendarPermissionsAsync();
-    setCalendarPermission(status === 'granted');
-  };
-
-  const requestCalendarPermission = async () => {
-    const { status } = await Calendar.requestCalendarPermissionsAsync();
-    setCalendarPermission(status === 'granted');
-
-    if (status === 'granted') {
-      Alert.alert(
-        'Success',
-        'Calendar permission granted. You can now sync events to your device calendar.'
-      );
-    }
-  };
-
-  const syncEventToNativeCalendar = useCallback(
-    async (event: Event) => {
-      if (!calendarPermission) {
-        Alert.alert('Permission Required', 'Calendar permission is required to sync events.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Grant Permission', onPress: requestCalendarPermission },
-        ]);
-        return;
-      }
-
-      try {
-        // Get default calendar
-        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        const defaultCalendar = calendars.find((cal) => cal.allowsModifications) || calendars[0];
-
-        if (!defaultCalendar) {
-          Alert.alert('Error', 'No calendar available for sync');
-          return;
-        }
-
-        // Create event in native calendar
-        const eventId = await Calendar.createEventAsync(defaultCalendar.id, {
-          title: event.title,
-          startDate: new Date(event.startDate),
-          endDate: new Date(event.endDate),
-          location: event.location,
-          notes: event.description,
-          alarms: event.reminders?.map((minutes) => ({ relativeOffset: -minutes })),
-        });
-
-        // Update event with native calendar ID
-        await dataService.updateEvent(event.id, {
-          syncedToNativeCalendar: true,
-          nativeCalendarEventId: eventId,
-        });
-
-        Alert.alert('Success', 'Event synced to your device calendar');
-        refresh();
-      } catch (error) {
-        console.error('Error syncing event:', error);
-        Alert.alert('Error', 'Failed to sync event to calendar');
-      }
-    },
-    [calendarPermission, refresh]
-  );
+    return themed;
+  }, [markedDates, theme.colors.primary]);
 
   const handleEventPress = useCallback(
     (event: Event) => {
@@ -188,16 +104,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  // Get upcoming events (from today forward)
-  const upcomingEvents = React.useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return events
-      .filter((event) => new Date(event.startDate) >= today)
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }, [events]);
-
   const openNativeCalendar = async () => {
     try {
       const url = Platform.select({
@@ -222,139 +128,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Failed to open native calendar');
     }
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    selectedDateHeader: {
-      padding: theme.spacing.md,
-      backgroundColor: theme.colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    selectedDateText: {
-      ...theme.typography.h6,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.xs,
-    },
-    eventCountText: {
-      ...theme.typography.body2,
-      color: theme.colors.textSecondary,
-    },
-    content: {
-      padding: theme.spacing.md,
-    },
-    syncButton: {
-      margin: theme.spacing.md,
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: theme.spacing.xl,
-    },
-    emptyIcon: {
-      marginBottom: theme.spacing.lg,
-    },
-    emptyTitle: {
-      ...theme.typography.h5,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    emptyText: {
-      ...theme.typography.body1,
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-    },
-    fab: {
-      position: 'absolute',
-      right: theme.spacing.lg,
-      bottom: theme.spacing.lg,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.colors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
-      elevation: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-    },
-    upcomingButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.colors.surface,
-      marginHorizontal: theme.spacing.md,
-      marginVertical: theme.spacing.sm,
-      paddingVertical: 12,
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: theme.colors.primary,
-      gap: 8,
-    },
-    upcomingButtonText: {
-      color: theme.colors.primary,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'flex-end',
-    },
-    modalContent: {
-      backgroundColor: theme.colors.background,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      maxHeight: '80%',
-      paddingBottom: 20,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: theme.colors.text,
-    },
-    upcomingEventsList: {
-      padding: theme.spacing.md,
-    },
-    upcomingEventItem: {
-      marginBottom: theme.spacing.md,
-    },
-    upcomingEventDate: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.colors.textSecondary,
-      marginBottom: theme.spacing.sm,
-      textTransform: 'uppercase',
-    },
-    emptyState: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: theme.spacing.xl,
-    },
-    emptyStateText: {
-      ...theme.typography.body1,
-      color: theme.colors.textSecondary,
-      marginTop: theme.spacing.md,
-      textAlign: 'center',
-    },
-  });
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -432,7 +205,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         current={selectedDate}
         onDayPress={handleDayPress}
         onDayLongPress={handleDayLongPress}
-        markedDates={markedDates}
+        markedDates={themedMarkedDates}
         markingType="multi-dot"
         theme={{
           backgroundColor: theme.colors.background,
@@ -460,12 +233,25 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         }}
       />
 
+      {/* Calendar Sync Buttons */}
       {!calendarPermission && (
         <Button
           title="Enable Calendar Sync"
           onPress={requestCalendarPermission}
           variant="outline"
           style={styles.syncButton}
+        />
+      )}
+
+      {calendarPermission && (
+        <Button
+          title="Import Device Calendar Events"
+          onPress={importNativeCalendarEvents}
+          variant="outline"
+          style={styles.syncButton}
+          loading={importing}
+          disabled={importing}
+          icon="download-outline"
         />
       )}
 
@@ -489,6 +275,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         onRefresh={refresh}
       />
 
+      {/* FAB - Create Event */}
       <TouchableOpacity style={styles.fab} onPress={() => handleCreateEvent(undefined)}>
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>

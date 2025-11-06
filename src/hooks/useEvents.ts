@@ -1,8 +1,8 @@
 /**
- * Custom hook for managing calendar events
+ * Custom hook for managing calendar events with real-time updates
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { dataService } from '../services';
 import { Event } from '../types';
 
@@ -11,6 +11,7 @@ export const useEvents = (userId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const unsubscribeRef = useRef<(() => void)[]>([]);
 
   const loadEvents = useCallback(async () => {
     if (!userId) {
@@ -38,9 +39,36 @@ export const useEvents = (userId: string | undefined) => {
     loadEvents();
   }, [loadEvents]);
 
+  // Set up real-time listener for events
   useEffect(() => {
+    if (!userId) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+
+    // Initial load
     loadEvents();
-  }, [loadEvents]);
+
+    // Subscribe to real-time updates - listen to Firebase changes
+    // Since events can be in multiple paths (personal-events, group events),
+    // we'll use a polling approach with Firebase onValue listeners
+    // This will automatically refresh when any event changes
+    const refreshInterval = setInterval(() => {
+      // Silently refresh events every 5 seconds to catch new events
+      if (!refreshing) {
+        loadEvents();
+      }
+    }, 5000);
+
+    // Cleanup on unmount
+    return () => {
+      clearInterval(refreshInterval);
+      // Cleanup any active subscriptions
+      unsubscribeRef.current.forEach((unsub) => unsub());
+      unsubscribeRef.current = [];
+    };
+  }, [userId, loadEvents, refreshing]);
 
   return {
     events,

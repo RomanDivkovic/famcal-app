@@ -15,6 +15,7 @@ import {
   reauthenticateWithCredential,
   deleteUser,
 } from 'firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { ref, set, get, update, remove, push, onValue } from 'firebase/database';
 import { auth, database } from './firebaseConfig';
 import { IDataService, DataServiceError } from './IDataService';
@@ -92,18 +93,79 @@ class FirebaseService implements IDataService {
 
   async signInWithGoogle(): Promise<User> {
     try {
-      // Note: Google Sign-in requires a custom development build
-      // It cannot work with Expo Go due to native module requirements
-      throw new DataServiceError(
-        'Google sign-in is not available in Expo Go. Please use email/password authentication or create a development build.',
-        'NOT_SUPPORTED'
-      );
-    } catch (error: any) {
-      throw new DataServiceError(
-        error.message || 'Failed to sign in with Google',
-        error.code,
-        error
-      );
+      // Configure Google Sign-In if not already configured
+      await GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        offlineAccess: true,
+      });
+
+      // Check if play services are available (Android)
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // Get Google ID token
+      const { data: googleUser } = await GoogleSignin.signIn();
+
+      if (!googleUser?.idToken) {
+        throw new DataServiceError('No ID token received from Google', 'NO_ID_TOKEN');
+      }
+
+      // Create Firebase credential with the token
+      const credential = GoogleAuthProvider.credential(googleUser.idToken);
+
+      // Sign in to Firebase with Google credential
+      const userCredential = await signInWithCredential(auth, credential);
+      const firebaseUser = userCredential.user;
+
+      // Create user object
+      const user: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        displayName: firebaseUser.displayName || undefined,
+        photoURL: firebaseUser.photoURL || undefined,
+        createdAt: new Date(),
+      };
+
+      // Check if user exists in database
+      const userRef = ref(database, `users/${user.id}`);
+      const userSnapshot = await get(userRef);
+
+      if (!userSnapshot.exists()) {
+        // New user - create profile in database
+        console.info('Creating new Google user in database:', user);
+        await set(userRef, this.serializeUser(user));
+      } else {
+        // Existing user - update profile if needed
+        const existingUser = userSnapshot.val();
+        if (
+          existingUser.displayName !== user.displayName ||
+          existingUser.photoURL !== user.photoURL
+        ) {
+          console.info('Updating Google user profile in database');
+          await update(userRef, {
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          });
+        }
+      }
+
+      return user;
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+
+      // Handle specific Google Sign-In errors
+      let message = 'Failed to sign in with Google';
+      if (err.code === '12501' || err.code === 'SIGN_IN_CANCELLED') {
+        message = 'Sign in was cancelled';
+      } else if (err.code === 'IN_PROGRESS') {
+        message = 'Sign in already in progress';
+      } else if (err.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        message = 'Google Play Services not available';
+      } else if (err.code === 'NO_ID_TOKEN') {
+        message = 'Failed to get authentication token from Google';
+      }
+
+      throw new DataServiceError(message, err.code, error);
     }
   }
 
