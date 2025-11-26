@@ -93,22 +93,50 @@ class FirebaseService implements IDataService {
 
   async signInWithGoogle(): Promise<User> {
     try {
+      // Log configuration for debugging
+      console.info('[Google Sign-In] Starting configuration...');
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+      if (!webClientId) {
+        throw new DataServiceError(
+          'Google Web Client ID is not configured. Please add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file.',
+          'MISSING_WEB_CLIENT_ID'
+        );
+      }
+
+      console.info('[Google Sign-In] Web Client ID:', webClientId?.substring(0, 20) + '...');
+      console.info('[Google Sign-In] iOS Client ID:', iosClientId ? 'Configured' : 'Not set');
+
       // Configure Google Sign-In if not already configured
       await GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        webClientId,
+        iosClientId,
         offlineAccess: true,
       });
 
+      console.info('[Google Sign-In] Configuration complete');
+
       // Check if play services are available (Android)
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      try {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        console.info('[Google Sign-In] Play Services available');
+      } catch (playServicesError) {
+        console.warn('[Google Sign-In] Play Services check:', playServicesError);
+        // Continue anyway - might be iOS
+      }
 
       // Get Google ID token
+      console.info('[Google Sign-In] Initiating sign in...');
       const { data: googleUser } = await GoogleSignin.signIn();
+      console.info('[Google Sign-In] Sign in successful, got user data');
 
       if (!googleUser?.idToken) {
+        console.error('[Google Sign-In] No ID token in response:', googleUser);
         throw new DataServiceError('No ID token received from Google', 'NO_ID_TOKEN');
       }
+
+      console.info('[Google Sign-In] Got ID token, authenticating with Firebase...');
 
       // Create Firebase credential with the token
       const credential = GoogleAuthProvider.credential(googleUser.idToken);
@@ -151,10 +179,17 @@ class FirebaseService implements IDataService {
 
       return user;
     } catch (error: unknown) {
+      // Log the full error for debugging
+      console.error('[Google Sign-In] Full error:', error);
+      console.error('[Google Sign-In] Error type:', typeof error);
+      console.error('[Google Sign-In] Error keys:', error ? Object.keys(error) : 'null');
+
       const err = error as { code?: string; message?: string };
 
       // Handle specific Google Sign-In errors
       let message = 'Failed to sign in with Google';
+      const errorCode = err.code || 'UNKNOWN';
+
       if (err.code === '12501' || err.code === 'SIGN_IN_CANCELLED') {
         message = 'Sign in was cancelled';
       } else if (err.code === 'IN_PROGRESS') {
@@ -163,9 +198,15 @@ class FirebaseService implements IDataService {
         message = 'Google Play Services not available';
       } else if (err.code === 'NO_ID_TOKEN') {
         message = 'Failed to get authentication token from Google';
+      } else if (err.message) {
+        // Include the actual error message for unknown errors
+        message = `Failed to sign in with Google: ${err.message}`;
       }
 
-      throw new DataServiceError(message, err.code, error);
+      console.error('[Google Sign-In] Error message:', message);
+      console.error('[Google Sign-In] Error code:', errorCode);
+
+      throw new DataServiceError(message, errorCode, error);
     }
   }
 

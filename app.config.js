@@ -24,12 +24,9 @@ export default {
       CFBundleURLTypes: [
         {
           CFBundleURLSchemes: [
-            // This will be dynamically set based on your Google OAuth Client ID
-            // Format: com.googleusercontent.apps.YOUR-CLIENT-ID
-            // You need to replace this with your actual reversed client ID from Google Console
-            process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-              ? `com.googleusercontent.apps.${process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID.split('-')[0]}`
-              : 'com.googleusercontent.apps.placeholder',
+            // Google Sign-In URL scheme - must be the reversed Client ID
+            'com.googleusercontent.apps.965105844075-9ourd9maatg9hogudmdpqtb2jqethpg1',
+            'com.groupcalendar.app',
           ],
         },
       ],

@@ -12,6 +12,7 @@ import {
   CustomRefreshControl,
   Button,
   JoinGroupBottomSheet,
+  TodoDetailBottomSheet,
 } from '../../components';
 import { Todo } from '../../types';
 import { dataService } from '../../services';
@@ -27,6 +28,8 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [showTodoDetail, setShowTodoDetail] = useState(false);
   const hasCleanedUp = useRef(false);
 
   useEffect(() => {
@@ -290,7 +293,14 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <FlatList
         data={filteredTodos}
         renderItem={({ item }) => (
-          <TodoItem todo={item} onToggle={() => handleToggleTodo(item.id)} />
+          <TodoItem
+            todo={item}
+            onToggle={() => handleToggleTodo(item.id)}
+            onPress={() => {
+              setSelectedTodo(item);
+              setShowTodoDetail(true);
+            }}
+          />
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.content, filteredTodos.length === 0 && { flex: 1 }]}
@@ -319,6 +329,28 @@ export const TodosScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <TouchableOpacity style={styles.fab} onPress={handleCreateTodo}>
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>
+
+      {/* Todo Detail Bottom Sheet */}
+      <TodoDetailBottomSheet
+        isVisible={showTodoDetail}
+        onClose={() => setShowTodoDetail(false)}
+        todo={selectedTodo}
+        onToggleComplete={() => {
+          if (selectedTodo) {
+            handleToggleTodo(selectedTodo.id);
+            setShowTodoDetail(false);
+          }
+        }}
+        onEdit={() => {
+          // TODO: Navigate to edit screen
+          console.info('Edit todo:', selectedTodo?.id);
+        }}
+        onDelete={async () => {
+          // TODO: Implement delete functionality
+          console.info('Delete todo:', selectedTodo?.id);
+          setShowTodoDetail(false);
+        }}
+      />
     </View>
   );
 };

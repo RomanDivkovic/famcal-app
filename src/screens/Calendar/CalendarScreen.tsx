@@ -3,20 +3,18 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  Linking,
-  Platform,
-  Modal,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header, EventCard, Button, JoinGroupBottomSheet } from '../../components';
+import {
+  Header,
+  EventCard,
+  Button,
+  JoinGroupBottomSheet,
+  EventDetailBottomSheet,
+  UpcomingEventsBottomSheet,
+} from '../../components';
 import { Event, MainTabParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -52,6 +50,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   // UI state
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showEventDetail, setShowEventDetail] = useState(false);
 
   const styles = createCalendarStyles(theme);
 
@@ -71,17 +71,10 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     return themed;
   }, [markedDates, theme.colors.primary]);
 
-  const handleEventPress = useCallback(
-    (event: Event) => {
-      if (!event.syncedToNativeCalendar && calendarPermission) {
-        Alert.alert('Sync Event', 'Would you like to sync this event to your device calendar?', [
-          { text: 'Not Now', style: 'cancel' },
-          { text: 'Sync', onPress: () => syncEventToNativeCalendar(event) },
-        ]);
-      }
-    },
-    [calendarPermission, syncEventToNativeCalendar]
-  );
+  const handleEventPress = useCallback((event: Event) => {
+    setSelectedEvent(event);
+    setShowEventDetail(true);
+  }, []);
 
   const handleCreateEvent = (date?: Date) => {
     // @ts-expect-error - CreateEvent is in RootStack but not in MainTab
@@ -280,53 +273,32 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>
 
-      {/* Upcoming Events Modal */}
-      <Modal
-        visible={showUpcomingModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowUpcomingModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Upcoming Events</Text>
-              <TouchableOpacity onPress={() => setShowUpcomingModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
+      {/* Upcoming Events Bottom Sheet */}
+      <UpcomingEventsBottomSheet
+        isVisible={showUpcomingModal}
+        onClose={() => setShowUpcomingModal(false)}
+        events={upcomingEvents}
+        onEventPress={handleEventPress}
+        onEventDelete={async (eventId) => {
+          // TODO: Implement delete functionality
+          console.info('Delete event:', eventId);
+        }}
+      />
 
-            {upcomingEvents.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={48} color={theme.colors.textSecondary} />
-                <Text style={styles.emptyStateText}>No upcoming events</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={upcomingEvents}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View style={styles.upcomingEventItem}>
-                    <Text style={styles.upcomingEventDate}>
-                      {format(new Date(item.startDate), 'MMM d, yyyy')}
-                    </Text>
-                    <EventCard
-                      event={item}
-                      onPress={() => {
-                        setShowUpcomingModal(false);
-                        // @ts-expect-error - EventDetail is in RootStack but not in MainTab
-                        navigation.navigate('EventDetail', { eventId: item.id });
-                      }}
-                    />
-                  </View>
-                )}
-                contentContainerStyle={styles.upcomingEventsList}
-                showsVerticalScrollIndicator={false}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+      {/* Event Detail Bottom Sheet */}
+      <EventDetailBottomSheet
+        isVisible={showEventDetail}
+        onClose={() => setShowEventDetail(false)}
+        event={selectedEvent}
+        onEdit={() => {
+          // TODO: Navigate to edit screen
+          console.info('Edit event:', selectedEvent?.id);
+        }}
+        onDelete={async () => {
+          // TODO: Implement delete functionality
+          console.info('Delete event:', selectedEvent?.id);
+        }}
+      />
     </View>
   );
 };
