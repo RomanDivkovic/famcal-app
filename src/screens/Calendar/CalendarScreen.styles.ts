@@ -11,6 +11,36 @@ export const createCalendarStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    // View mode switcher styles
+    viewModeSwitcher: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: theme.spacing.md,
+      marginVertical: theme.spacing.sm,
+      borderRadius: theme.borderRadius.lg,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    viewModeButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    viewModeButtonActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    viewModeText: {
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    viewModeTextActive: {
+      color: '#ffffff',
+    },
     selectedDateHeader: {
       padding: theme.spacing.md,
       backgroundColor: theme.colors.surface,
@@ -85,6 +115,85 @@ export const createCalendarStyles = (theme: Theme) =>
     upcomingButtonText: {
       color: theme.colors.primary,
       fontSize: 14,
+      fontWeight: '600',
+    },
+    // Week view styles
+    weekViewContainer: {
+      backgroundColor: theme.colors.surface,
+      paddingVertical: theme.spacing.md,
+    },
+    weekDayHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: theme.spacing.sm,
+    },
+    weekDayLabel: {
+      width: 48,
+      textAlign: 'center',
+      ...theme.typography.caption,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    weekDayRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+    weekDayButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    weekDayButtonSelected: {
+      backgroundColor: theme.colors.primary,
+    },
+    weekDayButtonToday: {
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+    },
+    weekDayNumber: {
+      ...theme.typography.body1,
+      color: theme.colors.text,
+      fontWeight: '500',
+    },
+    weekDayNumberSelected: {
+      color: '#ffffff',
+      fontWeight: '700',
+    },
+    weekDayNumberToday: {
+      color: theme.colors.primary,
+      fontWeight: '700',
+    },
+    weekDayDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.colors.primary,
+      marginTop: 4,
+    },
+    weekDayDotSelected: {
+      backgroundColor: '#ffffff',
+    },
+    // Day view styles
+    dayViewContainer: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    dayViewHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      backgroundColor: theme.colors.surface,
+    },
+    dayViewNavButton: {
+      padding: theme.spacing.sm,
+    },
+    dayViewTitle: {
+      ...theme.typography.h5,
+      color: theme.colors.text,
       fontWeight: '600',
     },
     modalOverlay: {

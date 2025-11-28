@@ -1,6 +1,6 @@
 export default {
-  name: 'GroupCalendar',
-  slug: 'group-calendar',
+  name: 'FamCaly',
+  slug: 'famcaly',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/famcal.png',
@@ -16,7 +16,7 @@ export default {
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.groupcalendar.app',
+    bundleIdentifier: 'com.famcaly.app',
     infoPlist: {
       NSCalendarsUsageDescription: 'This app needs access to your calendar to sync events.',
       NSRemindersUsageDescription: 'This app needs access to your reminders to sync tasks.',
@@ -24,9 +24,9 @@ export default {
       CFBundleURLTypes: [
         {
           CFBundleURLSchemes: [
-            // Google Sign-In URL scheme - must be the reversed Client ID
-            'com.googleusercontent.apps.965105844075-9ourd9maatg9hogudmdpqtb2jqethpg1',
-            'com.groupcalendar.app',
+            // Google Sign-In URL scheme - must be the reversed iOS Client ID
+            'com.googleusercontent.apps.965105844075-dn4tilc89pt7hhj8ogl9cmv978589dii',
+            'com.famcaly.app',
           ],
         },
       ],
@@ -37,7 +37,7 @@ export default {
       foregroundImage: './assets/famcal.png',
       backgroundColor: '#1a3a52',
     },
-    package: 'com.groupcalendar.app',
+    package: 'com.famcaly.app',
     permissions: ['READ_CALENDAR', 'WRITE_CALENDAR'],
   },
   web: {

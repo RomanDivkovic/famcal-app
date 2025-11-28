@@ -24,3 +24,4 @@ export { CustomRefreshControl } from './CustomRefreshControl';
 export { EventDetailBottomSheet } from './EventDetailBottomSheet';
 export { TodoDetailBottomSheet } from './TodoDetailBottomSheet';
 export { UpcomingEventsBottomSheet } from './UpcomingEventsBottomSheet';
+export { MemberInfoBottomSheet } from './MemberInfoBottomSheet';

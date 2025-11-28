@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   showBack?: boolean;
   onBack?: () => void;
   rightIcon?: keyof typeof Ionicons.glyphMap;
@@ -40,55 +40,74 @@ export const Header: React.FC<HeaderProps> = ({
     leftSection: {
       flexDirection: 'row',
       alignItems: 'center',
-      flex: showBack ? 0 : 1,
+      minWidth: 40,
     },
     backButton: {
       padding: theme.spacing.xs,
-      marginRight: theme.spacing.sm,
+    },
+    centerSection: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     title: {
       ...theme.typography.h5,
       color: theme.colors.headerText,
-      flex: showBack ? 0 : 1,
-      textAlign: showBack ? 'center' : 'left',
-      position: showBack ? 'absolute' : 'relative',
-      left: showBack ? 0 : undefined,
-      right: showBack ? 0 : undefined,
+    },
+    titleLeft: {
+      ...theme.typography.h5,
+      color: theme.colors.headerText,
+      flex: 1,
+    },
+    rightSection: {
+      minWidth: 40,
+      alignItems: 'flex-end',
     },
     rightButton: {
       padding: theme.spacing.xs,
     },
-    rightPlaceholder: {
-      width: 40,
-    },
   });
 
+  // Simple header without back button - title on left
+  if (!showBack) {
+    return (
+      <View style={styles.header}>
+        <Text style={styles.titleLeft} numberOfLines={1}>
+          {title}
+        </Text>
+        {rightIcon && onRightPress && (
+          <TouchableOpacity style={styles.rightButton} onPress={onRightPress}>
+            <Ionicons name={rightIcon} size={24} color={theme.colors.headerText} />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // Header with back button - title centered (optional)
   return (
     <View style={styles.header}>
       <View style={styles.leftSection}>
-        {showBack && onBack && (
+        {onBack && (
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.headerText} />
           </TouchableOpacity>
         )}
-        {!showBack && (
+      </View>
+      {title && (
+        <View style={styles.centerSection}>
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
+        </View>
+      )}
+      <View style={styles.rightSection}>
+        {rightIcon && onRightPress && (
+          <TouchableOpacity style={styles.rightButton} onPress={onRightPress}>
+            <Ionicons name={rightIcon} size={24} color={theme.colors.headerText} />
+          </TouchableOpacity>
         )}
       </View>
-      {showBack && (
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-      )}
-      {rightIcon && onRightPress ? (
-        <TouchableOpacity style={styles.rightButton} onPress={onRightPress}>
-          <Ionicons name={rightIcon} size={24} color={theme.colors.headerText} />
-        </TouchableOpacity>
-      ) : showBack ? (
-        <View style={styles.rightPlaceholder} />
-      ) : null}
     </View>
   );
 };

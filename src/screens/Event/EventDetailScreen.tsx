@@ -138,7 +138,7 @@ export const EventDetailScreen = ({ navigation, route }: Props) => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Header title="Event Details" showBack onBack={() => navigation.goBack()} />
+        <Header showBack onBack={() => navigation.goBack()} />
         <LoadingOverlay visible={true} />
       </View>
     );
@@ -147,7 +147,7 @@ export const EventDetailScreen = ({ navigation, route }: Props) => {
   if (!event) {
     return (
       <View style={styles.container}>
-        <Header title="Event Details" showBack onBack={() => navigation.goBack()} />
+        <Header showBack onBack={() => navigation.goBack()} />
         <View style={styles.content}>
           <Text style={styles.infoText}>Event not found</Text>
         </View>
@@ -157,7 +157,7 @@ export const EventDetailScreen = ({ navigation, route }: Props) => {
 
   return (
     <View style={styles.container}>
-      <Header title="Event Details" showBack onBack={() => navigation.goBack()} />
+      <Header showBack onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
           <Text style={styles.title}>{event.title}</Text>

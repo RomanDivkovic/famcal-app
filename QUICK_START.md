@@ -18,7 +18,7 @@
 4. Go to "Credentials" → "Create Credentials" → "OAuth Client ID"
 5. Create **TWO** client IDs:
    - **Web Application** (for both iOS & Android)
-   - **iOS Application** (enter bundle ID: `com.groupcalendar.app`)
+   - **iOS Application** (enter bundle ID: `com.famcaly.app`)
 
 ### Step 2: Create .env File
 

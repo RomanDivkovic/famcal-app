@@ -5,7 +5,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as Calendar from 'expo-calendar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dataService } from '../services';
+
+const CALENDAR_IMPORTED_KEY = '@calendar_events_imported';
 
 interface UseCalendarSyncOptions {
   userId?: string;
@@ -15,11 +18,22 @@ interface UseCalendarSyncOptions {
 export const useCalendarSync = ({ userId, onImportComplete }: UseCalendarSyncOptions = {}) => {
   const [calendarPermission, setCalendarPermission] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [hasImportedEvents, setHasImportedEvents] = useState(false);
 
-  // Check calendar permission on mount
+  // Check calendar permission and import status on mount
   useEffect(() => {
     checkCalendarPermission();
+    checkImportStatus();
   }, []);
+
+  const checkImportStatus = async () => {
+    try {
+      const imported = await AsyncStorage.getItem(CALENDAR_IMPORTED_KEY);
+      setHasImportedEvents(imported === 'true');
+    } catch (error) {
+      console.error('Error checking import status:', error);
+    }
+  };
 
   const checkCalendarPermission = async () => {
     const { status } = await Calendar.getCalendarPermissionsAsync();
@@ -29,6 +43,16 @@ export const useCalendarSync = ({ userId, onImportComplete }: UseCalendarSyncOpt
   const importNativeCalendarEvents = useCallback(async () => {
     if (!calendarPermission || !userId) {
       Alert.alert('Error', 'Calendar permission required');
+      return;
+    }
+
+    // Check if already imported
+    if (hasImportedEvents) {
+      Alert.alert(
+        'Already Imported',
+        'You have already imported your device calendar events. Importing again would create duplicates.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -98,6 +122,11 @@ export const useCalendarSync = ({ userId, onImportComplete }: UseCalendarSyncOpt
       }
 
       setImporting(false);
+
+      // Mark as imported to prevent duplicates
+      await AsyncStorage.setItem(CALENDAR_IMPORTED_KEY, 'true');
+      setHasImportedEvents(true);
+
       Alert.alert(
         'Import Complete',
         `Successfully imported ${importedCount} events from your device calendar.${
@@ -110,7 +139,7 @@ export const useCalendarSync = ({ userId, onImportComplete }: UseCalendarSyncOpt
       console.error('Error importing calendar events:', error);
       Alert.alert('Import Failed', 'Failed to import calendar events. Please try again.');
     }
-  }, [calendarPermission, userId, onImportComplete]);
+  }, [calendarPermission, userId, onImportComplete, hasImportedEvents]);
 
   const requestCalendarPermission = useCallback(async () => {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
@@ -188,6 +217,7 @@ export const useCalendarSync = ({ userId, onImportComplete }: UseCalendarSyncOpt
   return {
     calendarPermission,
     importing,
+    hasImportedEvents,
     requestCalendarPermission,
     importNativeCalendarEvents,
     syncEventToNativeCalendar,

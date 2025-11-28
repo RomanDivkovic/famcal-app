@@ -1,13 +1,23 @@
 /**
  * FAQ Screen - Frequently Asked Questions
+ * Features smooth accordion animations with rotating icons
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Header, Card } from '../../components';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  interpolate,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 
 interface FAQItem {
   question: string;
@@ -77,14 +87,136 @@ const faqData: FAQItem[] = [
   },
 ];
 
+// Animated Icon component with rotation
+const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
+
+interface AccordionItemProps {
+  item: FAQItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+  theme: ReturnType<typeof useTheme>['theme'];
+}
+
+const AccordionItem: React.FC<AccordionItemProps> = ({ item, isExpanded, onToggle, theme }) => {
+  const rotation = useSharedValue(isExpanded ? 1 : 0);
+  const height = useSharedValue(isExpanded ? 1 : 0);
+  const opacity = useSharedValue(isExpanded ? 1 : 0);
+  const scale = useSharedValue(1);
+
+  React.useEffect(() => {
+    rotation.value = withSpring(isExpanded ? 1 : 0, {
+      damping: 15,
+      stiffness: 120,
+    });
+    height.value = withTiming(isExpanded ? 1 : 0, {
+      duration: 300,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+    });
+    opacity.value = withTiming(isExpanded ? 1 : 0, {
+      duration: isExpanded ? 400 : 200,
+      easing: Easing.ease,
+    });
+  }, [isExpanded, rotation, height, opacity]);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => {
+    const rotateZ = interpolate(rotation.value, [0, 1], [0, 180]);
+    return {
+      transform: [{ rotateZ: `${rotateZ}deg` }],
+    };
+  });
+
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      maxHeight: interpolate(height.value, [0, 1], [0, 500]),
+      overflow: 'hidden' as const,
+    };
+  });
+
+  const pressableAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+  };
+
+  const styles = StyleSheet.create({
+    faqItem: {
+      marginBottom: theme.spacing.md,
+      padding: theme.spacing.md,
+      overflow: 'hidden',
+    },
+    questionContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    question: {
+      ...theme.typography.h6,
+      color: theme.colors.text,
+      flex: 1,
+      marginRight: theme.spacing.sm,
+    },
+    iconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary + '15',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    answerContainer: {
+      paddingTop: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      marginTop: theme.spacing.md,
+    },
+    answer: {
+      ...theme.typography.body2,
+      color: theme.colors.textSecondary,
+      lineHeight: 22,
+    },
+  });
+
+  return (
+    <Animated.View style={pressableAnimatedStyle}>
+      <Card style={styles.faqItem}>
+        <Pressable onPress={onToggle} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+          <View style={styles.questionContainer}>
+            <Text style={styles.question}>{item.question}</Text>
+            <View style={styles.iconContainer}>
+              <Animated.View style={iconAnimatedStyle}>
+                <Ionicons name="chevron-down" size={20} color={theme.colors.primary} />
+              </Animated.View>
+            </View>
+          </View>
+        </Pressable>
+
+        <Animated.View style={contentAnimatedStyle}>
+          <View style={styles.answerContainer}>
+            <Text style={styles.answer}>{item.answer}</Text>
+          </View>
+        </Animated.View>
+      </Card>
+    </Animated.View>
+  );
+};
+
 export const FAQScreen: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  const toggleExpanded = (index: number) => {
-    setExpandedIndex(expandedIndex === index ? null : index);
-  };
+  const toggleExpanded = useCallback((index: number) => {
+    setExpandedIndex((prev) => (prev === index ? null : index));
+  }, []);
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -99,6 +231,12 @@ export const FAQScreen: React.FC = () => {
     },
     scrollContent: {
       padding: theme.spacing.md,
+      paddingBottom: theme.spacing.xl,
+    },
+    pageTitle: {
+      ...theme.typography.h3,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
     },
     intro: {
       ...theme.typography.body1,
@@ -106,63 +244,27 @@ export const FAQScreen: React.FC = () => {
       marginBottom: theme.spacing.lg,
       lineHeight: 22,
     },
-    faqItem: {
-      marginBottom: theme.spacing.md,
-      padding: theme.spacing.md,
-    },
-    questionContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    question: {
-      ...theme.typography.h6,
-      color: theme.colors.text,
-      flex: 1,
-      marginRight: theme.spacing.sm,
-    },
-    answerContainer: {
-      marginTop: theme.spacing.md,
-      paddingTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border,
-    },
-    answer: {
-      ...theme.typography.body2,
-      color: theme.colors.textSecondary,
-      lineHeight: 22,
-    },
   });
 
   return (
     <View style={styles.container}>
-      <Header title="FAQ" showBack onBack={handleBack} />
+      <Header showBack onBack={handleBack} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageTitle}>FAQ</Text>
         <Text style={styles.intro}>
           Find answers to frequently asked questions about using GroupCalendarApp. If you don&apos;t
           find what you&apos;re looking for, please contact support.
         </Text>
 
         {faqData.map((item, index) => (
-          <Card key={index} style={styles.faqItem}>
-            <TouchableOpacity onPress={() => toggleExpanded(index)} activeOpacity={0.7}>
-              <View style={styles.questionContainer}>
-                <Text style={styles.question}>{item.question}</Text>
-                <Ionicons
-                  name={expandedIndex === index ? 'chevron-up' : 'chevron-down'}
-                  size={24}
-                  color={theme.colors.primary}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {expandedIndex === index && (
-              <View style={styles.answerContainer}>
-                <Text style={styles.answer}>{item.answer}</Text>
-              </View>
-            )}
-          </Card>
+          <AccordionItem
+            key={index}
+            item={item}
+            isExpanded={expandedIndex === index}
+            onToggle={() => toggleExpanded(index)}
+            theme={theme}
+          />
         ))}
       </ScrollView>
     </View>

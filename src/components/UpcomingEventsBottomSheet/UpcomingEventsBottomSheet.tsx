@@ -1,10 +1,10 @@
 /**
  * Upcoming Events Bottom Sheet Component
- * Shows list of upcoming events with swipe-to-delete functionality
+ * Shows list of upcoming events with smooth swipe-to-delete functionality
  */
 
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import BottomSheet, {
   BottomSheetView,
   BottomSheetBackdrop,
@@ -17,13 +17,18 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
   runOnJS,
+  interpolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme } from '../../contexts/ThemeContext';
 import { styles as getStyles } from './styles';
 import type { Event } from '../../types';
 import type { Theme } from '../../theme';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface UpcomingEventsBottomSheetProps {
   isVisible: boolean;
@@ -41,7 +46,8 @@ interface SwipeableEventItemProps {
   styles: ReturnType<typeof getStyles>;
 }
 
-const SWIPE_THRESHOLD = -80;
+const SWIPE_THRESHOLD = -100;
+const DELETE_THRESHOLD = -150;
 
 const SwipeableEventItem: React.FC<SwipeableEventItemProps> = ({
   event,
@@ -51,88 +57,148 @@ const SwipeableEventItem: React.FC<SwipeableEventItemProps> = ({
   styles,
 }) => {
   const translateX = useSharedValue(0);
-  const itemHeight = useSharedValue(1);
+  const itemHeight = useSharedValue(80);
+  const itemOpacity = useSharedValue(1);
+  const isDeleting = useSharedValue(false);
 
-  const handleDelete = () => {
-    'worklet';
-    runOnJS(onDelete)();
+  const confirmDelete = () => {
+    Alert.alert('Delete Event', `Are you sure you want to delete "${event.title}"?`, [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+        onPress: () => {
+          translateX.value = withSpring(0);
+        },
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          isDeleting.value = true;
+          translateX.value = withTiming(-SCREEN_WIDTH, { duration: 200 });
+          itemHeight.value = withTiming(0, { duration: 300 });
+          itemOpacity.value = withTiming(0, { duration: 200 }, () => {
+            runOnJS(onDelete)();
+          });
+        },
+      },
+    ]);
   };
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
+    .activeOffsetX([-15, 15])
+    .failOffsetY([-10, 10])
     .onUpdate((e) => {
+      if (isDeleting.value) return;
       // Only allow swiping left
       if (e.translationX < 0) {
         translateX.value = e.translationX;
       }
     })
     .onEnd((e) => {
-      if (e.translationX < SWIPE_THRESHOLD) {
-        // Swipe far enough - delete
-        translateX.value = withSpring(-300, {}, () => {
-          itemHeight.value = withSpring(0);
-          handleDelete();
-        });
+      if (isDeleting.value) return;
+
+      if (e.translationX < DELETE_THRESHOLD) {
+        // Quick swipe - confirm delete
+        runOnJS(confirmDelete)();
+      } else if (e.translationX < SWIPE_THRESHOLD) {
+        // Show delete button
+        translateX.value = withSpring(-100, { damping: 20, stiffness: 200 });
       } else {
         // Snap back
-        translateX.value = withSpring(0);
+        translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
     });
 
+  const tapGesture = Gesture.Tap()
+    .onStart(() => {
+      // Check if swiped - if so, snap back instead of opening
+      if (translateX.value < -50) {
+        translateX.value = withSpring(0);
+      }
+    })
+    .onEnd(() => {
+      // Only trigger press if not swiped
+      if (translateX.value >= -50) {
+        runOnJS(onPress)();
+      }
+    });
+
+  // Use Simultaneous for better tap detection, with Pan taking priority
+  const combinedGesture = Gesture.Exclusive(panGesture, tapGesture);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
-    opacity: 1 + translateX.value / 300,
   }));
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
-    height: itemHeight.value === 1 ? undefined : itemHeight.value,
-    opacity: itemHeight.value,
-    overflow: 'hidden',
+    height: itemHeight.value,
+    opacity: itemOpacity.value,
+    marginBottom: interpolate(itemOpacity.value, [0, 1], [0, 12]),
+    overflow: 'hidden' as const,
   }));
 
-  const deleteButtonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value < -20 ? 1 : 0,
-  }));
+  const deleteButtonAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(translateX.value, [-150, -50, 0], [1, 0.8, 0], Extrapolation.CLAMP);
+    const scale = interpolate(translateX.value, [-150, -80, 0], [1.1, 1, 0.8], Extrapolation.CLAMP);
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
+  });
+
+  const deleteIconAnimatedStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(
+      translateX.value,
+      [-150, -50, 0],
+      [-10, 0, 10],
+      Extrapolation.CLAMP
+    );
+    return {
+      transform: [{ rotate: `${rotation}deg` }],
+    };
+  });
 
   return (
     <Animated.View style={[styles.swipeableContainer, containerAnimatedStyle]}>
+      {/* Delete background with animated icon */}
       <Animated.View style={[styles.deleteBackground, deleteButtonAnimatedStyle]}>
-        <Ionicons name="trash" size={24} color="#ffffff" />
-        <Text style={styles.deleteText}>Delete</Text>
+        <TouchableOpacity onPress={confirmDelete} style={styles.deleteButtonTouchable}>
+          <Animated.View style={deleteIconAnimatedStyle}>
+            <Ionicons name="trash" size={26} color="#ffffff" />
+          </Animated.View>
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity>
       </Animated.View>
 
-      <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={combinedGesture}>
         <Animated.View style={animatedStyle}>
-          <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-            <View style={styles.eventItemContainer}>
-              <View style={styles.eventDateBadge}>
-                <Text style={styles.eventMonth}>{format(new Date(event.startDate), 'MMM')}</Text>
-                <Text style={styles.eventDay}>{format(new Date(event.startDate), 'd')}</Text>
-              </View>
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle} numberOfLines={2}>
-                  {event.title}
-                </Text>
-                <Text style={styles.eventTime}>
-                  {format(new Date(event.startDate), 'h:mm a')} -{' '}
-                  {format(new Date(event.endDate), 'h:mm a')}
-                </Text>
-                {event.location && (
-                  <View style={styles.locationRow}>
-                    <Ionicons
-                      name="location-outline"
-                      size={14}
-                      color={theme.colors.textSecondary}
-                    />
-                    <Text style={styles.eventLocation} numberOfLines={1}>
-                      {event.location}
-                    </Text>
-                  </View>
-                )}
-              </View>
+          <View style={styles.eventItemContainer}>
+            <View style={styles.eventDateBadge}>
+              <Text style={styles.eventMonth}>{format(new Date(event.startDate), 'MMM')}</Text>
+              <Text style={styles.eventDay}>{format(new Date(event.startDate), 'd')}</Text>
+            </View>
+            <View style={styles.eventInfo}>
+              <Text style={styles.eventTitle} numberOfLines={2}>
+                {event.title}
+              </Text>
+              <Text style={styles.eventTime}>
+                {format(new Date(event.startDate), 'h:mm a')} -{' '}
+                {format(new Date(event.endDate), 'h:mm a')}
+              </Text>
+              {event.location && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.eventLocation} numberOfLines={1}>
+                    {event.location}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
             </View>
-          </TouchableOpacity>
+          </View>
         </Animated.View>
       </GestureDetector>
     </Animated.View>
@@ -186,31 +252,20 @@ export const UpcomingEventsBottomSheet: React.FC<UpcomingEventsBottomSheetProps>
     []
   );
 
-  const handleEventDelete = useCallback(
-    (eventId: string, eventTitle: string) => {
-      Alert.alert('Delete Event', `Are you sure you want to delete "${eventTitle}"?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onEventDelete(eventId),
-        },
-      ]);
-    },
-    [onEventDelete]
-  );
-
   const renderItem = useCallback(
     ({ item }: { item: Event }) => (
       <SwipeableEventItem
         event={item}
-        onPress={() => onEventPress(item)}
-        onDelete={() => handleEventDelete(item.id, item.title)}
+        onPress={() => {
+          handleClose();
+          setTimeout(() => onEventPress(item), 300);
+        }}
+        onDelete={() => onEventDelete(item.id)}
         theme={theme}
         styles={styles}
       />
     ),
-    [onEventPress, handleEventDelete, theme, styles]
+    [onEventPress, onEventDelete, theme, styles, handleClose]
   );
 
   const renderEmpty = useCallback(
@@ -250,7 +305,7 @@ export const UpcomingEventsBottomSheet: React.FC<UpcomingEventsBottomSheetProps>
 
         <View style={styles.swipeHint}>
           <Ionicons name="arrow-back" size={16} color={theme.colors.textSecondary} />
-          <Text style={styles.swipeHintText}>Swipe left to delete</Text>
+          <Text style={styles.swipeHintText}>Swipe left to delete • Tap to view details</Text>
         </View>
 
         <BottomSheetFlatList

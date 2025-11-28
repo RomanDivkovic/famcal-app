@@ -1,9 +1,19 @@
 /**
  * Calendar Screen - Display personal and group events (Refactored)
+ * Features: Month/Week/Day views, Event details, Calendar sync
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,12 +27,22 @@ import {
 } from '../../components';
 import { Event, MainTabParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, isToday } from 'date-fns';
 import { useEvents, useGroups, useCalendarSync, useCalendarDates } from '../../hooks';
 import { Calendar as RNCalendar, DateData } from 'react-native-calendars';
 import { createCalendarStyles } from './CalendarScreen.styles';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeIn,
+  FadeOut,
+  Layout,
+} from 'react-native-reanimated';
+import { dataService } from '../../services';
 
 type CalendarScreenNavigationProp = NativeStackNavigationProp<MainTabParamList, 'Calendar'>;
+type ViewMode = 'month' | 'week' | 'day';
 
 interface Props {
   navigation: CalendarScreenNavigationProp;
@@ -42,6 +62,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const {
     calendarPermission,
     importing,
+    hasImportedEvents,
     requestCalendarPermission,
     importNativeCalendarEvents,
     syncEventToNativeCalendar,
@@ -52,8 +73,27 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
 
   const styles = createCalendarStyles(theme);
+
+  // Get week days for week view
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(new Date(selectedDate), { weekStartsOn: 1 }); // Monday start
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [selectedDate]);
+
+  // Check if a date has events
+  const dateHasEvents = useCallback(
+    (date: Date) => {
+      const dateString = format(date, 'yyyy-MM-dd');
+      return events.some((event) => {
+        const eventDate = format(new Date(event.startDate), 'yyyy-MM-dd');
+        return eventDate === dateString;
+      });
+    },
+    [events]
+  );
 
   // Update marked dates with theme color
   const themedMarkedDates = React.useMemo(() => {
@@ -96,6 +136,56 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       ]
     );
   };
+
+  const handleWeekDayPress = (date: Date) => {
+    setSelectedDate(format(date, 'yyyy-MM-dd'));
+  };
+
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const current = new Date(selectedDate);
+    const newDate = direction === 'next' ? addDays(current, 1) : addDays(current, -1);
+    setSelectedDate(format(newDate, 'yyyy-MM-dd'));
+  };
+
+  const handleEditEvent = useCallback(() => {
+    if (selectedEvent) {
+      setShowEventDetail(false);
+      // For now, show alert - Edit screen to be implemented
+      setTimeout(() => {
+        Alert.alert(
+          'Edit Event',
+          'Event editing will navigate to a dedicated edit screen in a future update.',
+          [{ text: 'OK' }]
+        );
+      }, 300);
+    }
+  }, [selectedEvent]);
+
+  const handleDeleteEvent = useCallback(async () => {
+    if (selectedEvent) {
+      try {
+        await dataService.deleteEvent(selectedEvent.id);
+        setShowEventDetail(false);
+        refresh();
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        Alert.alert('Error', 'Failed to delete event');
+      }
+    }
+  }, [selectedEvent, refresh]);
+
+  const handleEventDeleteFromList = useCallback(
+    async (eventId: string) => {
+      try {
+        await dataService.deleteEvent(eventId);
+        refresh();
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        Alert.alert('Error', 'Failed to delete event');
+      }
+    },
+    [refresh]
+  );
 
   const openNativeCalendar = async () => {
     try {
@@ -185,6 +275,21 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Header title="Calendar" rightIcon="calendar" onRightPress={openNativeCalendar} />
 
+      {/* View Mode Switcher */}
+      <View style={styles.viewModeSwitcher}>
+        {(['month', 'week', 'day'] as ViewMode[]).map((mode) => (
+          <Pressable
+            key={mode}
+            style={[styles.viewModeButton, viewMode === mode && styles.viewModeButtonActive]}
+            onPress={() => setViewMode(mode)}
+          >
+            <Text style={[styles.viewModeText, viewMode === mode && styles.viewModeTextActive]}>
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {/* Upcoming Events Button */}
       <TouchableOpacity style={styles.upcomingButton} onPress={() => setShowUpcomingModal(true)}>
         <Ionicons name="list-outline" size={20} color={theme.colors.primary} />
@@ -193,40 +298,119 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Calendar View */}
-      <RNCalendar
-        current={selectedDate}
-        onDayPress={handleDayPress}
-        onDayLongPress={handleDayLongPress}
-        markedDates={themedMarkedDates}
-        markingType="multi-dot"
-        theme={{
-          backgroundColor: theme.colors.background,
-          calendarBackground: theme.colors.surface,
-          textSectionTitleColor: theme.colors.textSecondary,
-          selectedDayBackgroundColor: theme.colors.primary,
-          selectedDayTextColor: '#ffffff',
-          todayTextColor: theme.colors.primary,
-          dayTextColor: theme.colors.text,
-          textDisabledColor: theme.colors.border,
-          dotColor: theme.colors.primary,
-          selectedDotColor: '#ffffff',
-          arrowColor: theme.colors.primary,
-          monthTextColor: theme.colors.text,
-          indicatorColor: theme.colors.primary,
-          textDayFontFamily: 'Inter',
-          textMonthFontFamily: 'Inter',
-          textDayHeaderFontFamily: 'Inter',
-          textDayFontWeight: '400',
-          textMonthFontWeight: '600',
-          textDayHeaderFontWeight: '500',
-          textDayFontSize: 14,
-          textMonthFontSize: 16,
-          textDayHeaderFontSize: 12,
-        }}
-      />
+      {/* Month View */}
+      {viewMode === 'month' && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)}>
+          <RNCalendar
+            current={selectedDate}
+            onDayPress={handleDayPress}
+            onDayLongPress={handleDayLongPress}
+            markedDates={themedMarkedDates}
+            markingType="multi-dot"
+            theme={{
+              backgroundColor: theme.colors.background,
+              calendarBackground: theme.colors.surface,
+              textSectionTitleColor: theme.colors.textSecondary,
+              selectedDayBackgroundColor: theme.colors.primary,
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: theme.colors.primary,
+              dayTextColor: theme.colors.text,
+              textDisabledColor: theme.colors.border,
+              dotColor: theme.colors.primary,
+              selectedDotColor: '#ffffff',
+              arrowColor: theme.colors.primary,
+              monthTextColor: theme.colors.text,
+              indicatorColor: theme.colors.primary,
+              textDayFontFamily: 'Inter',
+              textMonthFontFamily: 'Inter',
+              textDayHeaderFontFamily: 'Inter',
+              textDayFontWeight: '400',
+              textMonthFontWeight: '600',
+              textDayHeaderFontWeight: '500',
+              textDayFontSize: 14,
+              textMonthFontSize: 16,
+              textDayHeaderFontSize: 12,
+            }}
+          />
+        </Animated.View>
+      )}
 
-      {/* Calendar Sync Buttons */}
+      {/* Week View */}
+      {viewMode === 'week' && (
+        <Animated.View
+          style={styles.weekViewContainer}
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+        >
+          <View style={styles.weekDayHeader}>
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+              <Text key={day} style={styles.weekDayLabel}>
+                {day}
+              </Text>
+            ))}
+          </View>
+          <View style={styles.weekDayRow}>
+            {weekDays.map((date) => {
+              const isSelected = isSameDay(date, new Date(selectedDate));
+              const isTodayDate = isToday(date);
+              const hasEvents = dateHasEvents(date);
+
+              return (
+                <TouchableOpacity
+                  key={date.toISOString()}
+                  style={[
+                    styles.weekDayButton,
+                    isSelected && styles.weekDayButtonSelected,
+                    !isSelected && isTodayDate && styles.weekDayButtonToday,
+                  ]}
+                  onPress={() => handleWeekDayPress(date)}
+                  onLongPress={() =>
+                    handleDayLongPress({
+                      dateString: format(date, 'yyyy-MM-dd'),
+                      day: date.getDate(),
+                      month: date.getMonth() + 1,
+                      year: date.getFullYear(),
+                      timestamp: date.getTime(),
+                    })
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.weekDayNumber,
+                      isSelected && styles.weekDayNumberSelected,
+                      !isSelected && isTodayDate && styles.weekDayNumberToday,
+                    ]}
+                  >
+                    {format(date, 'd')}
+                  </Text>
+                  {hasEvents && (
+                    <View style={[styles.weekDayDot, isSelected && styles.weekDayDotSelected]} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Day View Navigation */}
+      {viewMode === 'day' && (
+        <Animated.View
+          style={styles.dayViewHeader}
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+        >
+          <TouchableOpacity style={styles.dayViewNavButton} onPress={() => navigateDay('prev')}>
+            <Ionicons name="chevron-back" size={28} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.dayViewTitle}>{format(new Date(selectedDate), 'EEE, MMM d')}</Text>
+          <TouchableOpacity style={styles.dayViewNavButton} onPress={() => navigateDay('next')}>
+            <Ionicons name="chevron-forward" size={28} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Calendar Sync Button - Only show if not already imported */}
       {!calendarPermission && (
         <Button
           title="Enable Calendar Sync"
@@ -236,7 +420,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         />
       )}
 
-      {calendarPermission && (
+      {calendarPermission && !hasImportedEvents && (
         <Button
           title="Import Device Calendar Events"
           onPress={importNativeCalendarEvents}
@@ -279,10 +463,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         onClose={() => setShowUpcomingModal(false)}
         events={upcomingEvents}
         onEventPress={handleEventPress}
-        onEventDelete={async (eventId) => {
-          // TODO: Implement delete functionality
-          console.info('Delete event:', eventId);
-        }}
+        onEventDelete={handleEventDeleteFromList}
       />
 
       {/* Event Detail Bottom Sheet */}
@@ -290,14 +471,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         isVisible={showEventDetail}
         onClose={() => setShowEventDetail(false)}
         event={selectedEvent}
-        onEdit={() => {
-          // TODO: Navigate to edit screen
-          console.info('Edit event:', selectedEvent?.id);
-        }}
-        onDelete={async () => {
-          // TODO: Implement delete functionality
-          console.info('Delete event:', selectedEvent?.id);
-        }}
+        onEdit={handleEditEvent}
+        onDelete={handleDeleteEvent}
       />
     </View>
   );

@@ -3,12 +3,19 @@
  * Displays details of a group and its members
  */
 
-import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Card, Header, Button, LoadingOverlay, InviteBottomSheet } from '../../components';
+import {
+  Card,
+  Header,
+  Button,
+  LoadingOverlay,
+  InviteBottomSheet,
+  MemberInfoBottomSheet,
+} from '../../components';
 import { RootStackParamList } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,6 +24,14 @@ import { createStyles } from './styles';
 
 type GroupDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GroupDetail'>;
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
+
+interface Member {
+  id: string;
+  displayName: string;
+  email: string;
+  role: string;
+  joinedAt?: string;
+}
 
 interface Props {
   navigation: GroupDetailScreenNavigationProp;
@@ -41,12 +56,21 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     isOwner,
   } = useGroupDetail(groupId);
 
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [showMemberInfo, setShowMemberInfo] = useState(false);
+
+  const handleMemberPress = (member: Member) => {
+    console.log('Member pressed:', member);
+    setSelectedMember(member);
+    setShowMemberInfo(true);
+  };
+
   const styles = createStyles(theme);
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <Header title="Group Details" showBack onBack={() => navigation.goBack()} />
+        <Header showBack onBack={() => navigation.goBack()} />
         <LoadingOverlay visible={loading} />
       </View>
     );
@@ -55,7 +79,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!group) {
     return (
       <View style={styles.container}>
-        <Header title="Group Details" showBack onBack={() => navigation.goBack()} />
+        <Header showBack onBack={() => navigation.goBack()} />
         <View style={styles.content}>
           <Text style={styles.emptyText}>Group not found</Text>
         </View>
@@ -65,7 +89,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Header title="Group Details" showBack onBack={() => navigation.goBack()} />
+      <Header showBack onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Group Info */}
         <Card style={styles.section}>
@@ -89,7 +113,11 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Members ({members.length})</Text>
           {members.map((member) => (
-            <Card key={member.id} style={styles.memberCard}>
+            <Card
+              key={member.id}
+              style={styles.memberCard}
+              onPress={() => handleMemberPress(member as Member)}
+            >
               <View style={styles.memberAvatar}>
                 <Text style={styles.memberAvatarText}>{getInitials(member.displayName)}</Text>
               </View>
@@ -97,6 +125,7 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={styles.memberName}>{member.displayName}</Text>
                 <Text style={styles.memberRole}>{member.role}</Text>
               </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
             </Card>
           ))}
         </View>
@@ -135,6 +164,12 @@ export const GroupDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         onClose={closeInviteModal}
         groupId={groupId}
         groupName={group?.name || 'Group'}
+      />
+
+      <MemberInfoBottomSheet
+        isVisible={showMemberInfo}
+        onClose={() => setShowMemberInfo(false)}
+        member={selectedMember}
       />
     </View>
   );
